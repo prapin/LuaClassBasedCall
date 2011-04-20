@@ -65,6 +65,7 @@ extern "C" {
 #endif
 
 #if LCBC_USE_MFC
+#define _WIN32_WINNT 0x0500
 #include <afx.h>
 #include <afxtempl.h>
 #endif
@@ -159,41 +160,41 @@ private:
 };
 
 
-template<> void Input::PushNumber<bool>(lua_State* L) const
+template<> inline void Input::PushNumber<bool>(lua_State* L) const
 {
 	lua_pushboolean(L, *(bool*)PointerValue); 
 }
 
-template<> void Input::PushValue<char>(lua_State* L) const
+template<> inline void Input::PushValue<char>(lua_State* L) const
 {
 	lua_pushstring(L, (const char*)PointerValue);
 }
 
-template<> void Input::PushSizedValue<char>(lua_State* L) const
+template<> inline void Input::PushSizedValue<char>(lua_State* L) const
 {
 	lua_pushlstring(L, (const char*)PointerValue, Size);
 }
 
-template<> void Input::PushValue<lua_State>(lua_State* L) const
+template<> inline void Input::PushValue<lua_State>(lua_State* L) const
 {
 	lua_pushthread((lua_State*)PointerValue); 
 	lua_xmove((lua_State*)PointerValue, L, 1);
 }
 
-template<> void Input::PushValue<void>(lua_State* L) const
+template<> inline void Input::PushValue<void>(lua_State* L) const
 {
 	lua_pushlightuserdata(L, (void*)PointerValue);
 }
 
-template<> void Input::PushSizedValue<void>(lua_State* L) const
+template<> inline void Input::PushSizedValue<void>(lua_State* L) const
 {
 	memcpy(lua_newuserdata(L, Size), PointerValue, Size);
 }
 
-template<class T> void Input::PushArray(lua_State* L) const
+template<class T> inline void Input::PushArray(lua_State* L) const
 {
 	const T* arr = (const T*)PointerValue;
-	lua_createtable(L, Size, 0);
+	lua_createtable(L, (int)Size, 0);
 	for(size_t i=0;i<Size;i++)
 	{
 		lua_pushinteger(L, i+1);
@@ -203,40 +204,40 @@ template<class T> void Input::PushArray(lua_State* L) const
 	}
 }
 
-template<> void Output::GetValue<bool>(lua_State* L, int idx) const
+template<> inline void Output::GetValue<bool>(lua_State* L, int idx) const
 {
 	*(bool*)PointerValue = lua_toboolean(L, idx) != 0;
 }
 
-template<> void Output::GetValue<const char*>(lua_State* L, int idx) const
+template<> inline void Output::GetValue<const char*>(lua_State* L, int idx) const
 {
 	*(const char**)PointerValue = luaL_checklstring(L, idx, NULL);
 }
 
-template<> void Output::GetSizedValue<const char*>(lua_State* L, int idx) const
+template<> inline void Output::GetSizedValue<const char*>(lua_State* L, int idx) const
 {
 	*(const char**)PointerValue = luaL_checklstring(L, idx, pSize);
 }
 
-template<> void Output::GetValue<lua_CFunction>(lua_State* L, int idx) const
+template<> inline void Output::GetValue<lua_CFunction>(lua_State* L, int idx) const
 {
 	luaL_checktype(L, idx, LUA_TFUNCTION); 
 	*(lua_CFunction*)PointerValue = lua_tocfunction(L, idx);
 }
 
-template<> void Output::GetValue<lua_State*>(lua_State* L, int idx) const
+template<> inline void Output::GetValue<lua_State*>(lua_State* L, int idx) const
 {
 	luaL_checktype(L, idx, LUA_TTHREAD); 
 	*(lua_State**)PointerValue = lua_tothread(L, idx);
 }
 
-template<> void Output::GetValue<void*>(lua_State* L, int idx) const
+template<> inline void Output::GetValue<void*>(lua_State* L, int idx) const
 {
 	luaL_checktype(L, idx, LUA_TLIGHTUSERDATA); 
 	*(void**)PointerValue = (void*)lua_topointer(L, idx);
 }
 
-template<> void Output::GetSizedValue<void>(lua_State* L, int idx) const
+template<> inline void Output::GetSizedValue<void>(lua_State* L, int idx) const
 {
 	luaL_checktype(L, idx, LUA_TUSERDATA); 
 	*(void**)PointerValue = (void*)lua_topointer(L, idx); 
@@ -244,13 +245,13 @@ template<> void Output::GetSizedValue<void>(lua_State* L, int idx) const
 }
 
 
-template<> void Output::GetArray<char>(lua_State* L, int idx) const
+template<> inline void Output::GetArray<char>(lua_State* L, int idx) const
 {
 	size_t len = GetSize(lua_objlen(L, idx)+1);
 	memcpy(PointerValue, lua_tostring(L, idx), len);
 }
 
-template<class T> void Output::GetArray(lua_State* L, int idx) const
+template<class T> inline void Output::GetArray(lua_State* L, int idx) const
 {
 	T* arr = (T*)PointerValue;
 	luaL_checktype(L, idx, LUA_TTABLE);
@@ -268,36 +269,36 @@ template<class T> void Output::GetArray(lua_State* L, int idx) const
 
 #if LCBC_USE_WIDESTRING
 #include <wchar.h>
-template<> void Input::PushValue<wchar_t>(lua_State* L) const
+template<> inline void Input::PushValue<wchar_t>(lua_State* L) const
 {
 	PushWideString(L, (const wchar_t*)PointerValue, NULL);
 }
 
-template<> void Input::PushSizedValue<wchar_t>(lua_State* L) const
+template<> inline void Input::PushSizedValue<wchar_t>(lua_State* L) const
 {
 	PushWideString(L, (const wchar_t*)PointerValue, Size);
 }
 
-template<> void Output::GetArray<wchar_t>(lua_State* L, int idx) const
+template<> inline void Output::GetArray<wchar_t>(lua_State* L, int idx) const
 {
 	size_t size;
 	const wchar_t* str = ToWideString(L, idx, &size);
 	memcpy(PointerValue, str, GetSize(size+1)*sizeof(wchar_t));
 }
 
-template<> void Output::GetValue<const wchar_t*>(lua_State* L, int idx) const
+template<> inline void Output::GetValue<const wchar_t*>(lua_State* L, int idx) const
 {
 	*(const wchar_t**)PointerValue = ToWideString(L, idx, NULL);
 }
 
-template<> void Output::GetSizedValue<const wchar_t*>(lua_State* L, int idx) const
+template<> inline void Output::GetSizedValue<const wchar_t*>(lua_State* L, int idx) const
 {
 	*(const wchar_t**)PointerValue = ToWideString(L, idx, pSize);
 }
 #endif
 
 #if LCBC_USE_STL
-template<class T> void Input::PushVector(lua_State* L) const
+template<class T> inline void Input::PushVector(lua_State* L) const
 {
 	const vector<T>* v = (const vector<T>*)PointerValue;
 	lua_createtable(L, v->size(), 0);
@@ -310,7 +311,7 @@ template<class T> void Input::PushVector(lua_State* L) const
 	}
 }
 
-template<class Key, class T> void Input::PushMap(lua_State* L) const
+template<class Key, class T> inline void Input::PushMap(lua_State* L) const
 {
 	map<Key,T>* m = (map<Key,T>*)PointerValue;
 	typename map<Key,T>::iterator it;
@@ -325,7 +326,7 @@ template<class Key, class T> void Input::PushMap(lua_State* L) const
 	}
 }
 
-template<> void Input::PushValue<string>(lua_State* L) const
+template<> inline void Input::PushValue<string>(lua_State* L) const
 {
 	string* str = (string*)PointerValue;
 	lua_pushlstring(L, str->data(), str->size());
@@ -344,7 +345,7 @@ template<> void Output::GetValue<string>(lua_State* L, int idx) const
 	((string*)PointerValue)->assign(str, size);
 }
 
-template<class T> void Output::GetVector(lua_State* L, int idx) const
+template<class T> inline void Output::GetVector(lua_State* L, int idx) const
 {
 	vector<T>* v = (vector<T>*)PointerValue;
 	luaL_checktype(L, idx, LUA_TTABLE);
@@ -363,7 +364,7 @@ template<class T> void Output::GetVector(lua_State* L, int idx) const
 }
 
 #if LCBC_USE_WIDESTRING
-template<> void Input::PushValue<wstring>(lua_State* L) const
+template<> inline void Input::PushValue<wstring>(lua_State* L) const
 {
 	wstring* str = (wstring*)PointerValue;
 	PushWideString(L, str->data(), str->size());
@@ -375,7 +376,7 @@ inline Input::Input(const wstring& value)
 	PointerValue = &value; 
 }
 
-template<> void Output::GetValue<wstring>(lua_State* L, int idx) const
+template<> inline void Output::GetValue<wstring>(lua_State* L, int idx) const
 {
 	size_t size; 
 	const wchar_t* str = ToWideString(L, idx, &size); 
@@ -386,7 +387,7 @@ template<> void Output::GetValue<wstring>(lua_State* L, int idx) const
 
 #if LCBC_USE_MFC
 
-template<class T, class A> void Input::PushCArray(lua_State* L) const
+template<class T, class A> inline void Input::PushCArray(lua_State* L) const
 {
 	const CArray<T,A>* v = (const CArray<T,A>*)PointerValue;
 	lua_createtable(L, v->GetSize(), 0);
@@ -399,7 +400,7 @@ template<class T, class A> void Input::PushCArray(lua_State* L) const
 	}
 }
 
-template<class T, class A> void Output::GetCArray(lua_State* L, int idx) const
+template<class T, class A> inline void Output::GetCArray(lua_State* L, int idx) const
 {
 	CArray<T,A>* v = (CArray<T,A>*)PointerValue;
 	luaL_checktype(L, idx, LUA_TTABLE);
@@ -418,7 +419,7 @@ template<class T, class A> void Output::GetCArray(lua_State* L, int idx) const
 	}
 }
 
-template<> void Input::PushValue<CStringA>(lua_State* L) const
+template<> inline void Input::PushValue<CStringA>(lua_State* L) const
 {
 	CStringA* str = (CStringA*)PointerValue;
 	lua_pushlstring(L, *str, str->GetLength());
@@ -430,7 +431,7 @@ inline Input::Input(const CStringA& value)
 	PointerValue = &value; 
 }
 
-template<> void Output::GetValue<CStringA>(lua_State* L, int idx) const
+template<> inline void Output::GetValue<CStringA>(lua_State* L, int idx) const
 {
 	size_t size; 
 	const char* str = luaL_checklstring(L, idx, &size); 
@@ -438,7 +439,7 @@ template<> void Output::GetValue<CStringA>(lua_State* L, int idx) const
 }
 
 #if LCBC_USE_WIDESTRING
-template<> void Input::PushValue<CStringW>(lua_State* L) const
+template<> inline void Input::PushValue<CStringW>(lua_State* L) const
 {
 	CStringW* str = (CStringW*)PointerValue;
 	PushWideString(L, *str, str->GetLength());
@@ -450,7 +451,7 @@ inline Input::Input(const CStringW& value)
 	PointerValue = &value; 
 }
 
-template<> void Output::GetValue<CStringW>(lua_State* L, int idx) const
+template<> inline void Output::GetValue<CStringW>(lua_State* L, int idx) const
 {
 	size_t size; 
 	const wchar_t* str = ToWideString(L, idx, &size); 
@@ -509,6 +510,32 @@ private:
 	const T** Arguments;
 };
 
+class LuaCallExceptionA
+{
+public:
+	LuaCallExceptionA(const char* message) : Message(message)  {}
+	operator const char*() const { return Message; }
+private:
+	const char* Message;
+};
+
+#if LCBC_USE_WIDESTRING
+class LuaCallExceptionW
+{
+public:
+	LuaCallExceptionW(const wchar_t* message) : Message(message)  {}
+	operator const wchar_t*() const { return Message; }
+private:
+	const wchar_t* Message;
+};
+#endif
+
+#ifdef _UNICODE
+#define LuaCallException LuaCallExceptionW
+#else
+#define LuaCallException LuaCallExceptionA
+#endif
+
 typedef Array<Input> Inputs;
 typedef Array<Output> Outputs;
 
@@ -536,36 +563,46 @@ public:
 	}
 	void Call(const char* script, const Outputs& outputs) { Call(script, Inputs(), outputs); }
 	const char* PCall(const char* script, const Outputs& outputs) { return PCall(script, Inputs(), outputs); }
-	void Call(const char* script, const Inputs& inputs = Inputs(), 
-		const Outputs& outputs = Outputs())
+	void ExceptCall(const char* script, const Outputs& outputs) { ExceptCall(script, Inputs(), outputs); }
+	void Call(const char* script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
 	{
 		PrepareCall(script, inputs, outputs);
 		DoCall();
 	}
-	const char* PCall(const char* script, const Inputs& inputs = Inputs(), 
-		const Outputs& outputs = Outputs())
+	const char* PCall(const char* script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
 	{
 		PrepareCall(script, inputs, outputs);
 		if(lua_cpcall(L, DoCall, this))
 			return lua_tostring(L, -1);
 		return NULL;
 	}
+	void ExceptCall(const char* script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
+	{
+		const char* error = PCall(script, inputs, outputs);
+		if(error)
+			throw LuaCallExceptionA(error);
+	}
 #if LCBC_USE_WIDESTRING
 	void Call(const wchar_t* script, const Outputs& outputs) { Call(script, Inputs(), outputs); }
 	const wchar_t* PCall(const wchar_t* script, const Outputs& outputs) { return PCall(script, Inputs(), outputs); }
-	void Call(const wchar_t* script, const Inputs& inputs = Inputs(), 
-		const Outputs& outputs = Outputs())
+	void ExceptCall(const wchar_t* script, const Outputs& outputs) { ExceptCall(script, Inputs(), outputs); }
+	void Call(const wchar_t* script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
 	{
 		PrepareCall(script, inputs, outputs);
 		DoCall();
 	}
-	const wchar_t* PCall(const wchar_t* script, const Inputs& inputs = Inputs(), 
-		const Outputs& outputs = Outputs())
+	const wchar_t* PCall(const wchar_t* script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
 	{
 		PrepareCall(script, inputs, outputs);
 		if(lua_cpcall(L, DoCall, this))
 			return Output::ToWideString(L, -1, NULL);
 		return NULL;
+	}
+	void ExceptCall(const wchar_t* script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
+	{
+		const wchar_t* error = PCall(script, inputs, outputs);
+		if(error)
+			throw LuaCallExceptionW(error);
 	}
 private:
 	void PrepareCall(const wchar_t* script_, const Inputs& inputs, const Outputs& outputs)
@@ -585,6 +622,8 @@ private:
 	}
 	void DoCall()
 	{
+		lua_pushcfunction(L, traceback);
+		int idxtrace = lua_gettop(L);
 		lua_getfield(L, LUA_REGISTRYINDEX, "LuaGenericC++Caller");
 		lua_getfield(L, -1, script);
 		if(!lua_isfunction(L, -1))
@@ -598,9 +637,10 @@ private:
 		lua_checkstack(L, (int)inputs->size());
 		for(size_t i=0;i<inputs->size(); i++)
 			inputs->get(i).Push(L);
-		lua_call(L, inputs->size(), outputs->size());
+		if(lua_pcall(L, (int)inputs->size(), (int)outputs->size(), idxtrace))
+			lua_error(L);
 		for(size_t i=0;i<outputs->size(); i++)
-			outputs->get(i).Get(L, i+base);
+			outputs->get(i).Get(L, (int)i+base);
 	}
 	static int DoCall(lua_State* L)
 	{
@@ -608,6 +648,26 @@ private:
 		This->DoCall();
 		return 0;
 	}
+	/* Function copied from lua.c */
+	static int traceback (lua_State *L) 
+	{
+		lua_getfield(L, LUA_GLOBALSINDEX, "debug");
+		if (!lua_istable(L, -1)) {
+			lua_pop(L, 1);
+			return 1;
+		}
+		lua_getfield(L, -1, "traceback");
+		if (!lua_isfunction(L, -1)) {
+			lua_pop(L, 2);
+			return 1;
+		}
+		lua_pushvalue(L, 1);  /* pass error message */
+		lua_pushinteger(L, 2);  /* skip this function and traceback */
+		lua_call(L, 2, 1);  /* call debug.traceback */
+		return 1;
+	}
+
+
 	lua_State* L;
 	const char* script;
 	const Inputs* inputs; 
@@ -645,7 +705,7 @@ inline void Input::PushWideString(lua_State* L, const wchar_t* wstr, size_t len)
 				*--pstr = (char)((value & 0x3F) | 0x80);
 				value >>= 6;
 			}
-			car = (unsigned)-1 << (8-sizeof(str)+pstr-str) | value;
+			car = char((unsigned)-1 << (8-sizeof(str)+pstr-str) | value);
 			*--pstr = car;
 		}
 		luaL_addlstring(&b, pstr, str+sizeof(str)-1-pstr);
