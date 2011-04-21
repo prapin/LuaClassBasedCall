@@ -22,6 +22,8 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
+// Version 1.0
+
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
 
@@ -510,30 +512,30 @@ private:
 	const T** Arguments;
 };
 
-class LuaCallExceptionA
+class ErrorA
 {
 public:
-	LuaCallExceptionA(const char* message) : Message(message)  {}
+	ErrorA(const char* message) : Message(message)  {}
 	operator const char*() const { return Message; }
 private:
 	const char* Message;
 };
 
 #if LCBC_USE_WIDESTRING
-class LuaCallExceptionW
+class ErrorW
 {
 public:
-	LuaCallExceptionW(const wchar_t* message) : Message(message)  {}
+	ErrorW(const wchar_t* message) : Message(message)  {}
 	operator const wchar_t*() const { return Message; }
 private:
 	const wchar_t* Message;
 };
 #endif
 
-#ifdef _UNICODE
-#define LuaCallException LuaCallExceptionW
+#if defined(_UNICODE) || defined(UNICODE)
+typedef ErrorW Error;
 #else
-#define LuaCallException LuaCallExceptionA
+typedef ErrorA Error;
 #endif
 
 typedef Array<Input> Inputs;
@@ -580,7 +582,7 @@ public:
 	{
 		const char* error = PCall(script, inputs, outputs);
 		if(error)
-			throw LuaCallExceptionA(error);
+			throw ErrorA(error);
 	}
 #if LCBC_USE_WIDESTRING
 	void Call(const wchar_t* script, const Outputs& outputs) { Call(script, Inputs(), outputs); }
@@ -602,7 +604,7 @@ public:
 	{
 		const wchar_t* error = PCall(script, inputs, outputs);
 		if(error)
-			throw LuaCallExceptionW(error);
+			throw ErrorW(error);
 	}
 private:
 	void PrepareCall(const wchar_t* script_, const Inputs& inputs, const Outputs& outputs)
