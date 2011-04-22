@@ -216,7 +216,7 @@ template<> inline void Output::GetValue<const char*>(lua_State* L, int idx) cons
 	*(const char**)PointerValue = luaL_checklstring(L, idx, NULL);
 }
 
-template<> inline void Output::GetSizedValue<const char*>(lua_State* L, int idx) const
+template<> inline void Output::GetSizedValue<char>(lua_State* L, int idx) const
 {
 	*(const char**)PointerValue = luaL_checklstring(L, idx, pSize);
 }
@@ -233,10 +233,9 @@ template<> inline void Output::GetValue<lua_State*>(lua_State* L, int idx) const
 	*(lua_State**)PointerValue = lua_tothread(L, idx);
 }
 
-template<> inline void Output::GetValue<void*>(lua_State* L, int idx) const
+template<> inline void Output::GetValue<const void*>(lua_State* L, int idx) const
 {
-	luaL_checktype(L, idx, LUA_TLIGHTUSERDATA); 
-	*(void**)PointerValue = (void*)lua_topointer(L, idx);
+	*(const void**)PointerValue = lua_touserdata(L, idx);
 }
 
 template<> inline void Output::GetSizedValue<void>(lua_State* L, int idx) const
@@ -250,7 +249,7 @@ template<> inline void Output::GetSizedValue<void>(lua_State* L, int idx) const
 template<> inline void Output::GetArray<char>(lua_State* L, int idx) const
 {
 	size_t len = GetSize(lua_objlen(L, idx)+1);
-	memcpy(PointerValue, lua_tostring(L, idx), len);
+	memcpy(PointerValue, luaL_checkstring(L, idx), len);
 }
 
 template<class T> inline void Output::GetArray(lua_State* L, int idx) const
@@ -293,7 +292,7 @@ template<> inline void Output::GetValue<const wchar_t*>(lua_State* L, int idx) c
 	*(const wchar_t**)PointerValue = ToWideString(L, idx, NULL);
 }
 
-template<> inline void Output::GetSizedValue<const wchar_t*>(lua_State* L, int idx) const
+template<> inline void Output::GetSizedValue<wchar_t>(lua_State* L, int idx) const
 {
 	*(const wchar_t**)PointerValue = ToWideString(L, idx, pSize);
 }
