@@ -22,7 +22,7 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 1.0.1
+// Version 1.0.2
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
@@ -35,13 +35,13 @@
 #define LCBC_USE_WIDESTRING 2
 #endif
 
-/* LCBC_USE_STL defines if some features of the C++ Standard Library
+/* LCBC_USE_CSL defines if some features of the C++ Standard Library
    should be supported. The classes used are string, vector<> and map<>,
    also wstring provided that LGENCALL_USE_WIDESTRING is different from 0.
    0: no support
    1: STL classes can be used in the calls. */
-#ifndef LCBC_USE_STL
-#define LCBC_USE_STL 1
+#ifndef LCBC_USE_CSL
+#define LCBC_USE_CSL 0
 #endif
 
 /* LCBC_USE_MFC enables a few number of Microsoft Foundation Classes (MFC)
@@ -57,10 +57,11 @@ extern "C" {
 #include "lauxlib.h"
 #include "lualib.h"
 }
-#include <string.h>
-#include <stdlib.h>
+#include <cstring>
+#include <cstdlib>
+#include <cwchar>
 
-#if LCBC_USE_STL
+#if LCBC_USE_CSL
 #include <string>
 #include <vector>
 #include <map>
@@ -73,9 +74,7 @@ extern "C" {
 #endif
 
 namespace lua {
-#if LCBC_USE_STL
 using namespace std;
-#endif
 
 enum eNil { nil };
 
@@ -90,7 +89,7 @@ public:
 	template<class T> Input(const T* value) { pPush = &Input::PushValue<T>; PointerValue = value; }
 	template<class T> Input(const T* value, size_t size) { pPush = &Input::PushSizedValue<T>; PointerValue = value; Size = size; }
 	template<class T> Input(size_t len, const T* value) { pPush = &Input::PushArray<T>; PointerValue = value; Size=len; }
-#if LCBC_USE_STL
+#if LCBC_USE_CSL
 	Input(const string& value);
 	Input(const wstring& value);
 	template<class T> Input(const vector<T>& value) { pPush = &Input::PushVector<T>; PointerValue = &value; }
@@ -103,9 +102,7 @@ public:
 #endif
 
 	void Push(lua_State* L) const { (this->*pPush)(L); }
-#if LCBC_USE_WIDESTRING
 	static void PushWideString(lua_State* L, const wchar_t* str, size_t len);
-#endif
 private:
 	void PushNil(lua_State* L) const { lua_pushnil(L); }
 	void PushBoolean(lua_State* L) const { lua_pushboolean(L, BooleanValue); }
@@ -137,7 +134,7 @@ public:
 	template<class T> Output(T& value) { pGet = &Output::GetValue<T>; PointerValue = &value; }
 	template<class T> Output(size_t& size, T* value) { memset(value, 0, size*sizeof(T)); pGet = &Output::GetArray<T>; pSize = &size; PointerValue = value; }
 	template<class T> Output(const T*& value, size_t& size) { pGet = &Output::GetSizedValue<T>; pSize = &size; PointerValue = &value; }
-#if LCBC_USE_STL
+#if LCBC_USE_CSL
 	template<class T> Output(vector<T>& value) { pGet = &Output::GetVector<T>; PointerValue = &value; }
 #endif
 #if LCBC_USE_MFC
@@ -145,9 +142,7 @@ public:
 #endif
 
 	void Get(lua_State* L, int idx) const  { (this->*pGet)(L, idx); }
-#if LCBC_USE_WIDESTRING
 	static const wchar_t* ToWideString(lua_State* L, int idx, size_t* psize);
-#endif
 private:
 	size_t GetSize(size_t s1) const { size_t s2=*pSize; *pSize=s1; return s1 < s2 ? s1 : s2; }
 	void GetNil(lua_State* L, int idx) const {}
@@ -269,8 +264,6 @@ template<class T> inline void Output::GetArray(lua_State* L, int idx) const
 	}
 }
 
-#if LCBC_USE_WIDESTRING
-#include <wchar.h>
 template<> inline void Input::PushValue<wchar_t>(lua_State* L) const
 {
 	PushWideString(L, (const wchar_t*)PointerValue, NULL);
@@ -297,9 +290,8 @@ template<> inline void Output::GetSizedValue<wchar_t>(lua_State* L, int idx) con
 {
 	*(const wchar_t**)PointerValue = ToWideString(L, idx, pSize);
 }
-#endif
 
-#if LCBC_USE_STL
+#if LCBC_USE_CSL
 template<class T> inline void Input::PushVector(lua_State* L) const
 {
 	const vector<T>* v = (const vector<T>*)PointerValue;
@@ -365,7 +357,6 @@ template<class T> inline void Output::GetVector(lua_State* L, int idx) const
 	}
 }
 
-#if LCBC_USE_WIDESTRING
 template<> inline void Input::PushValue<wstring>(lua_State* L) const
 {
 	wstring* str = (wstring*)PointerValue;
@@ -384,7 +375,6 @@ template<> inline void Output::GetValue<wstring>(lua_State* L, int idx) const
 	const wchar_t* str = ToWideString(L, idx, &size); 
 	((wstring*)PointerValue)->assign(str, size);
 }
-#endif
 #endif
 
 #if LCBC_USE_MFC
@@ -440,7 +430,6 @@ template<> inline void Output::GetValue<CStringA>(lua_State* L, int idx) const
 	*(CStringA*)PointerValue = CStringA(str, (int)size);
 }
 
-#if LCBC_USE_WIDESTRING
 template<> inline void Input::PushValue<CStringW>(lua_State* L) const
 {
 	CStringW* str = (CStringW*)PointerValue;
@@ -459,7 +448,6 @@ template<> inline void Output::GetValue<CStringW>(lua_State* L, int idx) const
 	const wchar_t* str = ToWideString(L, idx, &size); 
 	*(CStringW*)PointerValue = CStringW(str, (int)size);
 }
-#endif
 #endif
 
 template<class T>
@@ -523,7 +511,6 @@ private:
 	const char* Message;
 };
 
-#if LCBC_USE_WIDESTRING
 class ErrorW
 {
 public:
@@ -532,7 +519,6 @@ public:
 private:
 	const wchar_t* Message;
 };
-#endif
 
 #if defined(_UNICODE) || defined(UNICODE)
 typedef ErrorW Error;
@@ -600,7 +586,6 @@ public:
 		if(error)
 			throw ErrorA(error);
 	}
-#if LCBC_USE_WIDESTRING
 	void Call(const wchar_t* script, const Outputs& outputs) { Call(script, Inputs(), outputs); }
 	const wchar_t* PCall(const wchar_t* script, const Outputs& outputs) { return PCall(script, Inputs(), outputs); }
 	void ExceptCall(const wchar_t* script, const Outputs& outputs) { ExceptCall(script, Inputs(), outputs); }
@@ -629,7 +614,6 @@ private:
 		Input::PushWideString(L, script_, wcslen(script_));
 		script = lua_tostring(L, -1);
 	}
-#endif
 private:
 	void PrepareCall(const char* script_, const Inputs& inputs_, const Outputs& outputs_)
 	{

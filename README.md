@@ -200,7 +200,6 @@ instance, a Lua string is expected and will be copied into the buffer.
 		
 ### Full example
 
-	#define LCBC_USE_STL 0 // Exclude some C++ headers for faster compilation
 	#include "lgencall.hpp"
 	
 	using namespace lua;
@@ -217,7 +216,7 @@ instance, a Lua string is expected and will be copied into the buffer.
 			L.ExceptCall("for k,v in pairs(mytable) do print(k,v,type(v)) end");
 			bool res1; double res2; float res3; const wchar_t* res4; const char* res5;
 			L.ExceptCall("return unpack(mytable)", Outputs(res1, res2, res3, res4, res5));
-			printf("myteable = { %d, %g, %g, %S, %s }\n", res1, res2, res3, res4, res5);
+			printf("mytable = { %d, %g, %g, %S, %s }\n", res1, res2, res3, res4, res5);
 		}
 		catch(Error err)
 		{
