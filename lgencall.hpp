@@ -84,8 +84,8 @@ class Input
 public:
 	Input(eNil) { pPush = &Input::PushNil; }
 	Input(bool value) { pPush = &Input::PushBoolean; BooleanValue = value; }
-	Input(lua_CFunction value) { pPush = &Input::PushFunction; PointerValue = (const void*)value; Size = 0;}
-	Input(lua_CFunction value, size_t len) { pPush = &Input::PushFunction; PointerValue = (const void*)value; Size=len; }
+	Input(lua_CFunction value) { pPush = &Input::PushFunction; FunctionValue = value; Size = 0;}
+	Input(lua_CFunction value, size_t len) { pPush = &Input::PushFunction; FunctionValue = value; Size=len; }
 	template<class T> Input(T value) { pPush = &Input::PushNumber<T>; NumberValue = (lua_Number)value; }
 	template<class T> Input(const T* value) { pPush = &Input::PushValue<T>; PointerValue = value; }
 	template<class T> Input(const T* value, size_t size) { pPush = &Input::PushSizedValue<T>; PointerValue = value; Size = size; }
@@ -110,7 +110,7 @@ private:
 	void PushNil(lua_State* L) const { lua_pushnil(L); }
 	void PushBoolean(lua_State* L) const { lua_pushboolean(L, BooleanValue); }
 	void PushNumber(lua_State* L) const { lua_pushnumber(L, NumberValue); }
-	void PushFunction(lua_State* L) const { lua_pushcclosure(L, (lua_CFunction)PointerValue, (int)Size); }
+	void PushFunction(lua_State* L) const { lua_pushcclosure(L, FunctionValue, (int)Size); }
 	template<class T> void PushNumber(lua_State* L) const { lua_pushnumber(L, lua_Number(*(T*)PointerValue)); }
 	template<class T> void PushValue(lua_State* L) const;
 	template<class T> void PushSizedValue(lua_State* L) const;
@@ -125,6 +125,7 @@ private:
 		bool BooleanValue;
 		lua_Number NumberValue;
 		const void* PointerValue;
+		lua_CFunction FunctionValue;
 	};
 	size_t Size;
 };
