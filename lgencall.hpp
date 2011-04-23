@@ -35,7 +35,7 @@
 #define LCBC_USE_WIDESTRING 2
 #endif
 
-/* LCBC_USE_STL defines if some features of the Standard Template Library (STL)
+/* LCBC_USE_STL defines if some features of the C++ Standard Library
    should be supported. The classes used are string, vector<> and map<>,
    also wstring provided that LGENCALL_USE_WIDESTRING is different from 0.
    0: no support

@@ -53,7 +53,7 @@ Features
 *  Generic `const void*` pointers, mapped to light or full userdata
 *  C arrays of any supported type: the number of elements must be
    passed to the explicit constructor as its first argument.
-*  Some STL (Standard Template Library) classes (more to come):
+*  Some template classes from the C++ Standard Library (more to come):
    * `string`
    * `wstring`
    * `vector<T>`
@@ -200,7 +200,7 @@ instance, a Lua string is expected and will be copied into the buffer.
 		
 ### Full example
 
-	#define LCBC_USE_STL 0 // Exclude STL headers for faster compilation
+	#define LCBC_USE_STL 0 // Exclude some C++ headers for faster compilation
 	#include "lgencall.hpp"
 	
 	using namespace lua;
