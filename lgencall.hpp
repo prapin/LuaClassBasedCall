@@ -22,7 +22,7 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 1.0
+// Version 1.0.1
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
@@ -467,6 +467,7 @@ class Array
 public:
 	typedef const T& ref;
 	Array() : Size(0), Arguments(NULL) {}
+	Array(const Array& src) { Init(src.Arguments, src.Size); }
 	~Array() { delete [] Arguments; }
 	Array(ref arg1) { const T* args[] = { &arg1 }; Init(args, 1); }
 	Array(ref arg1, ref arg2) { const T* args[] = { &arg1, &arg2 }; Init(args, 2); }
@@ -497,6 +498,7 @@ public:
 		&arg17, &arg18, &arg19, &arg20, &arg21, &arg22, &arg23, &arg24,
 		&arg25, &arg26, &arg27, &arg28, &arg29, &arg30, &arg31, &arg32};	
 		Init(args, 32); }
+	Array& operator=(const Array& src) { delete[]Arguments; Init(src.Arguments, src.Size); return *this; }
 	size_t size() const { return Size; }
 	ref get(size_t idx) const { return *Arguments[idx]; }
 private:
@@ -543,8 +545,7 @@ typedef Array<Output> Outputs;
 class Lua
 {
 public:
-
-	Lua() 
+	Lua()
 	{ 
 		L = luaL_newstate(); 
 		luaL_openlibs(L); 
@@ -553,9 +554,24 @@ public:
 	Lua(lua_State* l) 
 	{
 		L = l; 
+		Retain();
 		FlushCache();
 	}
-	~Lua() { lua_close(L); }
+	Lua(const Lua& src)
+	{
+		L = src.L; 
+		Retain();
+		FlushCache();
+	}
+	~Lua() { Release(); }
+	Lua& operator=(const Lua& src) 
+	{ 
+		Release(); 
+		L = src.L; 
+		Retain();
+		FlushCache();
+		return *this;
+	}
 	operator lua_State*() { return L; }
 	void FlushCache()
 	{
@@ -667,7 +683,17 @@ private:
 		lua_call(L, 2, 1);  /* call debug.traceback */
 		return 1;
 	}
-
+	lua_Integer IncrRetainCount(int incr)
+	{
+		lua_getfield(L, LUA_REGISTRYINDEX, "LuaGenericC++RetainCount");
+		lua_Integer count = lua_tointeger(L, -1);
+		count = count + incr;
+		lua_pushinteger(L, count);
+		lua_setfield(L, LUA_REGISTRYINDEX, "LuaGenericC++RetainCount");
+		return count;
+	}
+	void Retain() { IncrRetainCount(1); }
+	void Release() { if(IncrRetainCount(-1) < 0) lua_close(L); }
 
 	lua_State* L;
 	const char* script;
