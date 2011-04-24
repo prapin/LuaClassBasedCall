@@ -256,10 +256,9 @@ template<class T> inline void Output::GetArray(lua_State* L, int idx) const
 	int top = lua_gettop(L);
 	for(size_t i=0;i<len;i++)
 	{
-		lua_pushinteger(L, i+1);
-		lua_gettable(L, idx);
+		lua_rawgeti(L, idx, i+1);
 		Output output(arr[i]);
-		output.Get(L, lua_gettop(L));
+		output.Get(L,top+1);
 		lua_settop(L, top);
 	}
 }
@@ -347,11 +346,10 @@ template<class T> inline void Output::GetVector(lua_State* L, int idx) const
 	int top = lua_gettop(L);
 	for(size_t i=0;i<len;i++)
 	{
-		lua_pushinteger(L, i+1);
-		lua_gettable(L, idx);
+		lua_rawgeti(L, idx, i+1);
 		T value;
 		Output output(value);
-		output.Get(L, lua_gettop(L));
+		output.Get(L, top+1);
 		v->push_back(value);
 		lua_settop(L, top);
 	}
@@ -401,11 +399,10 @@ template<class T, class A> inline void Output::GetCArray(lua_State* L, int idx) 
 	v->SetSize(len);
 	for(size_t i=0;i<len;i++)
 	{
-		lua_pushinteger(L, i+1);
-		lua_gettable(L, idx);
+		lua_rawgeti(L, idx, i+1);
 		T value;
 		Output output(value);
-		output.Get(L, lua_gettop(L));
+		output.Get(L, top+1);
 		v->SetAt(i, value);
 		lua_settop(L, top);
 	}
