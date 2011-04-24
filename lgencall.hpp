@@ -22,7 +22,7 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 1.0.2
+// Version 1.0.3
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
@@ -259,7 +259,7 @@ template<class T> inline void Output::GetArray(lua_State* L, int idx) const
 		lua_pushinteger(L, i+1);
 		lua_gettable(L, idx);
 		Output output(arr[i]);
-		output.Get(L, -1);
+		output.Get(L, lua_gettop(L));
 		lua_settop(L, top);
 	}
 }
@@ -351,7 +351,7 @@ template<class T> inline void Output::GetVector(lua_State* L, int idx) const
 		lua_gettable(L, idx);
 		T value;
 		Output output(value);
-		output.Get(L, -1);
+		output.Get(L, lua_gettop(L));
 		v->push_back(value);
 		lua_settop(L, top);
 	}
@@ -405,7 +405,7 @@ template<class T, class A> inline void Output::GetCArray(lua_State* L, int idx) 
 		lua_gettable(L, idx);
 		T value;
 		Output output(value);
-		output.Get(L, -1);
+		output.Get(L, lua_gettop(L));
 		v->SetAt(i, value);
 		lua_settop(L, top);
 	}
