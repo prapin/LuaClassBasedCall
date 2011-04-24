@@ -22,15 +22,17 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 1.0.3
+// Version 1.0.4
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
 
 /* LCBC_USE_WIDESTRING defines the support for wide character (Unicode) strings:
-   0 : no support
-   1 : conversions between wchar_t* and char* use wctomb and mbtowc standard functions
-   2 : conversions between wchar_t* and char* are done by the library, using UTF-8 format */
+   0 : no conversion, wide character strings are pushed verbatim to the stack (raw bytes);
+       script snippets cannot be wchar_t* (you would get syntax errors looking like Chineese)
+   1 : conversions between wchar_t* and char* use wctomb and mbtowc standard functions;
+       the resulting strings depend on your current locale
+   2 : conversions between wchar_t* and char* are done by the library, using UTF-8 encoding */
 #ifndef LCBC_USE_WIDESTRING
 #define LCBC_USE_WIDESTRING 2
 #endif
@@ -39,7 +41,7 @@
    should be supported. The classes used are string, vector<> and map<>,
    also wstring provided that LGENCALL_USE_WIDESTRING is different from 0.
    0: no support
-   1: STL classes can be used in the calls. */
+   1: C++ Standard Library classes can be used in the calls. */
 #ifndef LCBC_USE_CSL
 #define LCBC_USE_CSL 0
 #endif
@@ -595,7 +597,7 @@ public:
 	{
 		PrepareCall(script, inputs, outputs);
 		if(lua_cpcall(L, DoCall, this))
-			return Output::ToWideString(L, -1, NULL);
+			return Output::ToWideString(L, lua_gettop(L), NULL);
 		return NULL;
 	}
 	void ExceptCall(const wchar_t* script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
@@ -683,7 +685,27 @@ private:
 	const Outputs* outputs;
 };
 
-#if LCBC_USE_WIDESTRING == 2
+#if LCBC_USE_WIDESTRING == 0
+inline void Input::PushWideString(lua_State* L, const wchar_t* wstr, size_t len)
+{
+	if(len == 0)
+		len = wcslen(wstr);
+	lua_pushlstring(L, (const char*)wstr, 2*len);
+}
+
+inline const wchar_t* Output::ToWideString(lua_State* L, int idx, size_t* psize)
+{
+	lua_pushvalue(L, idx);
+	lua_pushlstring(L, "\0\0\0\0", sizeof(wchar_t));
+	lua_concat(L, 2);
+	lua_replace(L, idx);
+	size_t bsize;
+	const wchar_t* res = (const wchar_t*)lua_tolstring(L, idx, &bsize);
+	if(psize)
+		*psize = (bsize-1)/sizeof(wchar_t);
+	return res;
+}
+#elif LCBC_USE_WIDESTRING == 2
 inline void Input::PushWideString(lua_State* L, const wchar_t* wstr, size_t len)
 {
 	luaL_Buffer b;
