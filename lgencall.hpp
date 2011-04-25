@@ -197,10 +197,9 @@ template<class T> inline void Input::PushArray(lua_State* L) const
 	lua_createtable(L, (int)Size, 0);
 	for(size_t i=0;i<Size;i++)
 	{
-		lua_pushinteger(L, i+1);
 		Input input(arr[i]);
 		input.Push(L);
-		lua_settable(L, -3);
+		lua_rawseti(L, -2, i+1);
 	}
 }
 
@@ -299,10 +298,9 @@ template<class T> inline void Input::PushVector(lua_State* L) const
 	lua_createtable(L, v->size(), 0);
 	for(size_t i=0;i<v->size();i++)
 	{
-		lua_pushinteger(L, i+1);
 		Input input(v->at(i));
 		input.Push(L);
-		lua_settable(L, -3);
+		lua_rawseti(L, -2, i+1);
 	}
 }
 
@@ -385,10 +383,9 @@ template<class T, class A> inline void Input::PushCArray(lua_State* L) const
 	lua_createtable(L, v->GetSize(), 0);
 	for(int i=0;i<v->GetSize();i++)
 	{
-		lua_pushinteger(L, i+1);
 		Input input(v->GetAt(i));
 		input.Push(L);
-		lua_settable(L, -3);
+		lua_rawseti(L, -2, i+1);
 	}
 }
 
