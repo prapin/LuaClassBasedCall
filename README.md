@@ -53,12 +53,15 @@ Features
 *  Generic `const void*` pointers, mapped to light or full userdata
 *  C arrays of any supported type: the number of elements must be
    passed to the explicit constructor as its first argument.
-*  Some template classes from the C++ Standard Library (more to come):
+*  Some template classes from the C++ Standard Library. _Any_ supported
+   type can be used as template argument T or K.
    * `string`
    * `wstring`
    * `vector<T>`
    * `map<K,T>`
-*  Some MFC (Microsoft Foundation Classes) elements:
+   * `list<T>`
+   * `set<T>`
+*  Some MFC (Microsoft Foundation Classes) elements (more to come):
    * `CStringA`
    * `CStringW`
    * `CArray<T1,T2>`

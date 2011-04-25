@@ -38,8 +38,8 @@
 #endif
 
 /* LCBC_USE_CSL defines if some features of the C++ Standard Library
-   should be supported. The classes used are string, vector<> and map<>,
-   also wstring provided that LGENCALL_USE_WIDESTRING is different from 0.
+   should be supported. The supported classes used are string, wstring, 
+   vector<T>, map<K,T>, list<T> and set<T>.
    0: no support
    1: C++ Standard Library classes can be used in the calls. */
 #ifndef LCBC_USE_CSL
