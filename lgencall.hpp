@@ -67,6 +67,7 @@ extern "C" {
 #include <string>
 #include <vector>
 #include <map>
+#include <list>
 #endif
 
 #if LCBC_USE_MFC
@@ -97,6 +98,7 @@ public:
 	Input(const wstring& value);
 	template<class T> Input(const vector<T>& value) { pPush = &Input::PushVector<T>; PointerValue = &value; }
 	template<class Key, class T> Input(const map<Key,T>& value) { pPush = &Input::PushMap<Key,T>; PointerValue = &value; }
+	template<class T> Input(const list<T>& value) { pPush = &Input::PushList<T>; PointerValue = &value; }
 #endif
 #if LCBC_USE_MFC
 	Input(const CStringA& value);
@@ -117,6 +119,7 @@ private:
 	template<class T> void PushArray(lua_State* L) const;
 	template<class T, size_t L2> void Push2DArray(lua_State* L) const;
 	template<class T> void PushVector(lua_State* L) const;
+	template<class T> void PushList(lua_State* L) const;
 	template<class T, class A> void PushCArray(lua_State* L) const;
 	template<class Key, class T> void PushMap(lua_State* L) const;
 
@@ -142,6 +145,7 @@ public:
 #if LCBC_USE_CSL
 	template<class T> Output(vector<T>& value) { pGet = &Output::GetVector<T>; PointerValue = &value; }
 	template<class K, class T> Output(map<K,T>& value) { pGet = &Output::GetMap<K,T>; PointerValue = &value; }
+	template<class T> Output(list<T>& value) { pGet = &Output::GetList<T>; PointerValue = &value; }
 #endif
 #if LCBC_USE_MFC
 	template<class T, class A> Output(CArray<T,A>& value) { pGet = &Output::GetCArray<T,A>; PointerValue = &value; }
@@ -158,6 +162,7 @@ private:
 	template<class T, size_t L2> void Get2DArray(lua_State* L, int idx) const;
 	template<class T> void GetVector(lua_State* L, int idx) const;
 	template<class K, class T> void GetMap(lua_State* L, int idx) const;
+	template<class T> void GetList(lua_State* L, int idx) const;
 	template<class T, class A> void GetCArray(lua_State* L, int idx) const;
 
 	void (Output::*pGet)(lua_State* L, int idx) const;
@@ -353,6 +358,21 @@ template<class Key, class T> inline void Input::PushMap(lua_State* L) const
 	}
 }
 
+template<class T> inline void Input::PushList(lua_State* L) const
+{
+	list<T>* mylist = (list<T>*)PointerValue;
+	lua_createtable(L, mylist->size(), 0);
+	typename list<T>::iterator it;
+	int i=0;
+	for (it=mylist->begin(); it != mylist->end(); it++,i++)
+	{
+		lua_pushinteger(L, i+1);
+		Input input(*it);
+		input.Push(L);
+		lua_settable(L, -3);
+	}
+}
+
 template<> inline void Input::PushValue<string>(lua_State* L) const
 {
 	string* str = (string*)PointerValue;
@@ -375,6 +395,23 @@ template<> void Output::GetValue<string>(lua_State* L, int idx) const
 template<class T> inline void Output::GetVector(lua_State* L, int idx) const
 {
 	vector<T>* v = (vector<T>*)PointerValue;
+	luaL_checktype(L, idx, LUA_TTABLE);
+	size_t len = lua_objlen(L, idx);
+	int top = lua_gettop(L);
+	for(size_t i=0;i<len;i++)
+	{
+		lua_rawgeti(L, idx, i+1);
+		T value;
+		Output output(value);
+		output.Get(L, top+1);
+		v->push_back(value);
+		lua_settop(L, top);
+	}
+}
+
+template<class T> inline void Output::GetList(lua_State* L, int idx) const
+{
+	list<T>* v = (list<T>*)PointerValue;
 	luaL_checktype(L, idx, LUA_TTABLE);
 	size_t len = lua_objlen(L, idx);
 	int top = lua_gettop(L);
