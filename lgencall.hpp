@@ -22,7 +22,7 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 1.0.5
+// Version 1.0.6
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
@@ -141,6 +141,7 @@ public:
 	template<class T, size_t L2> Output(size_t& len1, T value[][L2]) {pGet = &Output::Get2DArray<T,L2>; pSize = &len1; PointerValue = value;  }
 #if LCBC_USE_CSL
 	template<class T> Output(vector<T>& value) { pGet = &Output::GetVector<T>; PointerValue = &value; }
+	template<class K, class T> Output(map<K,T>& value) { pGet = &Output::GetMap<K,T>; PointerValue = &value; }
 #endif
 #if LCBC_USE_MFC
 	template<class T, class A> Output(CArray<T,A>& value) { pGet = &Output::GetCArray<T,A>; PointerValue = &value; }
@@ -156,6 +157,7 @@ private:
 	template<class T> void GetArray(lua_State* L, int idx) const;
 	template<class T, size_t L2> void Get2DArray(lua_State* L, int idx) const;
 	template<class T> void GetVector(lua_State* L, int idx) const;
+	template<class K, class T> void GetMap(lua_State* L, int idx) const;
 	template<class T, class A> void GetCArray(lua_State* L, int idx) const;
 
 	void (Output::*pGet)(lua_State* L, int idx) const;
@@ -385,6 +387,26 @@ template<class T> inline void Output::GetVector(lua_State* L, int idx) const
 		v->push_back(value);
 		lua_settop(L, top);
 	}
+}
+
+template<class K, class T> inline void Output::GetMap(lua_State* L, int idx) const
+{
+	map<K,T>* m = (map<K,T>*)PointerValue;
+	luaL_checktype(L, idx, LUA_TTABLE);
+	int top = lua_gettop(L);
+	lua_pushnil(L);
+	while (lua_next(L, idx) != 0)
+	{
+		K key;
+		Output outputKey(key);
+		outputKey.Get(L, top+1);
+		T value;
+		Output output(value);
+		output.Get(L, top+2);
+		lua_settop(L, top+1);
+		(*m)[key] = value;
+	}
+	lua_settop(L, top);
 }
 
 template<> inline void Input::PushValue<wstring>(lua_State* L) const
