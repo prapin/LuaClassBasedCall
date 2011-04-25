@@ -91,6 +91,8 @@ public:
 	template<class T> Input(const T* value) { pPush = &Input::PushValue<T>; PointerValue = value; }
 	template<class T> Input(const T* value, size_t size) { pPush = &Input::PushSizedValue<T>; PointerValue = value; Size = size; }
 	template<class T> Input(size_t len, const T* value) { pPush = &Input::PushArray<T>; PointerValue = value; Size=len; }
+	template<class T, size_t L2> Input(size_t len1, const T value[][L2]) { pPush = &Input::Push2DArray<T,L2>; PointerValue = value; Size=len1; }
+	template<class T, size_t L2, size_t L3> Input(size_t len1, const T value[][L2][L3]) { pPush = &Input::Push3DArray<T,L2,L3>; PointerValue = value; Size=len1; }
 #if LCBC_USE_CSL
 	Input(const string& value);
 	Input(const wstring& value);
@@ -114,6 +116,8 @@ private:
 	template<class T> void PushValue(lua_State* L) const;
 	template<class T> void PushSizedValue(lua_State* L) const;
 	template<class T> void PushArray(lua_State* L) const;
+	template<class T, size_t L2> void Push2DArray(lua_State* L) const;
+	template<class T, size_t L2, size_t L3> void Push3DArray(lua_State* L) const;
 	template<class T> void PushVector(lua_State* L) const;
 	template<class T, class A> void PushCArray(lua_State* L) const;
 	template<class Key, class T> void PushMap(lua_State* L) const;
@@ -198,6 +202,30 @@ template<class T> inline void Input::PushArray(lua_State* L) const
 	for(size_t i=0;i<Size;i++)
 	{
 		Input input(arr[i]);
+		input.Push(L);
+		lua_rawseti(L, -2, i+1);
+	}
+}
+
+template<class T, size_t L2> inline void Input::Push2DArray(lua_State* L) const
+{
+	const T (*arr)[L2] = (const T(*)[L2])PointerValue;
+	lua_createtable(L, (int)Size, 0);
+	for(size_t i=0;i<Size;i++)
+	{
+		Input input(L2, arr[i]);
+		input.Push(L);
+		lua_rawseti(L, -2, i+1);
+	}
+}
+
+template<class T, size_t L2, size_t L3> inline void Input::Push3DArray(lua_State* L) const
+{
+	const T (*arr)[L2][L3] = (const T(*)[L2][L3])PointerValue;
+	lua_createtable(L, (int)Size, 0);
+	for(size_t i=0;i<Size;i++)
+	{
+		Input input(L2, arr[i]);
 		input.Push(L);
 		lua_rawseti(L, -2, i+1);
 	}
