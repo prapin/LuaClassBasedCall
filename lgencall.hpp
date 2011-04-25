@@ -22,7 +22,7 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 1.0.4
+// Version 1.0.5
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
@@ -92,7 +92,6 @@ public:
 	template<class T> Input(const T* value, size_t size) { pPush = &Input::PushSizedValue<T>; PointerValue = value; Size = size; }
 	template<class T> Input(size_t len, const T* value) { pPush = &Input::PushArray<T>; PointerValue = value; Size=len; }
 	template<class T, size_t L2> Input(size_t len1, const T value[][L2]) { pPush = &Input::Push2DArray<T,L2>; PointerValue = value; Size=len1; }
-	template<class T, size_t L2, size_t L3> Input(size_t len1, const T value[][L2][L3]) { pPush = &Input::Push3DArray<T,L2,L3>; PointerValue = value; Size=len1; }
 #if LCBC_USE_CSL
 	Input(const string& value);
 	Input(const wstring& value);
@@ -117,7 +116,6 @@ private:
 	template<class T> void PushSizedValue(lua_State* L) const;
 	template<class T> void PushArray(lua_State* L) const;
 	template<class T, size_t L2> void Push2DArray(lua_State* L) const;
-	template<class T, size_t L2, size_t L3> void Push3DArray(lua_State* L) const;
 	template<class T> void PushVector(lua_State* L) const;
 	template<class T, class A> void PushCArray(lua_State* L) const;
 	template<class Key, class T> void PushMap(lua_State* L) const;
@@ -140,6 +138,7 @@ public:
 	template<class T> Output(T& value) { pGet = &Output::GetValue<T>; PointerValue = &value; }
 	template<class T> Output(size_t& size, T* value) { memset(value, 0, size*sizeof(T)); pGet = &Output::GetArray<T>; pSize = &size; PointerValue = value; }
 	template<class T> Output(const T*& value, size_t& size) { pGet = &Output::GetSizedValue<T>; pSize = &size; PointerValue = &value; }
+	template<class T, size_t L2> Output(size_t& len1, T value[][L2]) {pGet = &Output::Get2DArray<T,L2>; pSize = &len1; PointerValue = value;  }
 #if LCBC_USE_CSL
 	template<class T> Output(vector<T>& value) { pGet = &Output::GetVector<T>; PointerValue = &value; }
 #endif
@@ -155,6 +154,7 @@ private:
 	template<class T> void GetValue(lua_State* L, int idx) const { *(T*)PointerValue = (T)luaL_checknumber(L, idx); }
 	template<class T> void GetSizedValue(lua_State* L, int idx) const;
 	template<class T> void GetArray(lua_State* L, int idx) const;
+	template<class T, size_t L2> void Get2DArray(lua_State* L, int idx) const;
 	template<class T> void GetVector(lua_State* L, int idx) const;
 	template<class T, class A> void GetCArray(lua_State* L, int idx) const;
 
@@ -210,18 +210,6 @@ template<class T> inline void Input::PushArray(lua_State* L) const
 template<class T, size_t L2> inline void Input::Push2DArray(lua_State* L) const
 {
 	const T (*arr)[L2] = (const T(*)[L2])PointerValue;
-	lua_createtable(L, (int)Size, 0);
-	for(size_t i=0;i<Size;i++)
-	{
-		Input input(L2, arr[i]);
-		input.Push(L);
-		lua_rawseti(L, -2, i+1);
-	}
-}
-
-template<class T, size_t L2, size_t L3> inline void Input::Push3DArray(lua_State* L) const
-{
-	const T (*arr)[L2][L3] = (const T(*)[L2][L3])PointerValue;
 	lua_createtable(L, (int)Size, 0);
 	for(size_t i=0;i<Size;i++)
 	{
@@ -287,6 +275,22 @@ template<class T> inline void Output::GetArray(lua_State* L, int idx) const
 	{
 		lua_rawgeti(L, idx, i+1);
 		Output output(arr[i]);
+		output.Get(L,top+1);
+		lua_settop(L, top);
+	}
+}
+
+template<class T, size_t L2> inline void Output::Get2DArray(lua_State* L, int idx) const
+{
+	T (*arr)[L2] = (T(*)[L2])PointerValue;
+	luaL_checktype(L, idx, LUA_TTABLE);
+	size_t len = GetSize(lua_objlen(L, idx));
+	int top = lua_gettop(L);
+	for(size_t i=0;i<len;i++)
+	{
+		lua_rawgeti(L, idx, i+1);
+		size_t len2 = L2;
+		Output output(len2, arr[i]);
 		output.Get(L,top+1);
 		lua_settop(L, top);
 	}
