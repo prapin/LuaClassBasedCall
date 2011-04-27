@@ -22,19 +22,20 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 1.0.7
+// Version 1.0.8
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
 
 /* LCBC_USE_WIDESTRING defines the support for wide character (Unicode) strings:
-   0 : no conversion, wide character strings are pushed verbatim to the stack (raw bytes);
+   0 : wchar_t and wstring are not supported; to make sure they are #defined to dummy types
+   1 : no conversion, wide character strings are pushed verbatim to the stack (raw bytes);
        script snippets cannot be wchar_t* (you would get syntax errors looking like Chineese)
-   1 : conversions between wchar_t* and char* use wctomb and mbtowc standard functions;
+   2 : conversions between wchar_t* and char* use wctomb and mbtowc standard functions;
        the resulting strings depend on your current locale
-   2 : conversions between wchar_t* and char* are done by the library, using UTF-8 encoding */
+   3 : conversions between wchar_t* and char* are done by the library, using UTF-8 encoding */
 #ifndef LCBC_USE_WIDESTRING
-#define LCBC_USE_WIDESTRING 2
+#define LCBC_USE_WIDESTRING 3
 #endif
 
 /* LCBC_USE_CSL defines if some features of the C++ Standard Library
@@ -61,7 +62,10 @@ extern "C" {
 }
 #include <cstring>
 #include <cstdlib>
+
+#if LCBC_USE_WIDESTRING
 #include <cwchar>
+#endif
 
 #if LCBC_USE_CSL
 #include <string>
@@ -81,6 +85,13 @@ namespace lua {
 using namespace std;
 
 enum eNil { nil };
+
+#if LCBC_USE_WIDESTRING == 0
+enum dummy_wchar_t {};
+class dummy_wstring {};
+#define wchar_t dummy_wchar_t
+#define wstring dummy_wstring
+#endif
 
 class Input
 {
@@ -215,7 +226,7 @@ template<class T> inline void Input::PushArray(lua_State* L) const
 	{
 		Input input(arr[i]);
 		input.Push(L);
-		lua_rawseti(L, -2, i+1);
+		lua_rawseti(L, -2, (int)i+1);
 	}
 }
 
@@ -227,7 +238,7 @@ template<class T, size_t L2> inline void Input::Push2DArray(lua_State* L) const
 	{
 		Input input(L2, arr[i]);
 		input.Push(L);
-		lua_rawseti(L, -2, i+1);
+		lua_rawseti(L, -2, (int)i+1);
 	}
 }
 
@@ -285,7 +296,7 @@ template<class T> inline void Output::GetArray(lua_State* L, int idx) const
 	int top = lua_gettop(L);
 	for(size_t i=0;i<len;i++)
 	{
-		lua_rawgeti(L, idx, i+1);
+		lua_rawgeti(L, idx, (int)i+1);
 		Output output(arr[i]);
 		output.Get(L,top+1);
 		lua_settop(L, top);
@@ -300,7 +311,7 @@ template<class T, size_t L2> inline void Output::Get2DArray(lua_State* L, int id
 	int top = lua_gettop(L);
 	for(size_t i=0;i<len;i++)
 	{
-		lua_rawgeti(L, idx, i+1);
+		lua_rawgeti(L, idx, (int)i+1);
 		size_t len2 = L2;
 		Output output(len2, arr[i]);
 		output.Get(L,top+1);
@@ -310,7 +321,7 @@ template<class T, size_t L2> inline void Output::Get2DArray(lua_State* L, int id
 
 template<> inline void Input::PushValue<wchar_t>(lua_State* L) const
 {
-	PushWideString(L, (const wchar_t*)PointerValue, NULL);
+	PushWideString(L, (const wchar_t*)PointerValue, 0);
 }
 
 template<> inline void Input::PushSizedValue<wchar_t>(lua_State* L) const
@@ -344,7 +355,7 @@ template<class T> inline void Input::PushVector(lua_State* L) const
 	{
 		Input input(v->at(i));
 		input.Push(L);
-		lua_rawseti(L, -2, i+1);
+		lua_rawseti(L, -2, (int)i+1);
 	}
 }
 
@@ -419,7 +430,7 @@ template<class T> inline void Output::GetVector(lua_State* L, int idx) const
 	int top = lua_gettop(L);
 	for(size_t i=0;i<len;i++)
 	{
-		lua_rawgeti(L, idx, i+1);
+		lua_rawgeti(L, idx, (int)i+1);
 		T value;
 		Output output(value);
 		output.Get(L, top+1);
@@ -436,7 +447,7 @@ template<class T> inline void Output::GetList(lua_State* L, int idx) const
 	int top = lua_gettop(L);
 	for(size_t i=0;i<len;i++)
 	{
-		lua_rawgeti(L, idx, i+1);
+		lua_rawgeti(L, idx, (int)i+1);
 		T value;
 		Output output(value);
 		output.Get(L, top+1);
@@ -482,6 +493,7 @@ template<class K, class T> inline void Output::GetMap(lua_State* L, int idx) con
 	lua_settop(L, top);
 }
 
+#if LCBC_USE_WIDESTRING
 template<> inline void Input::PushValue<wstring>(lua_State* L) const
 {
 	wstring* str = (wstring*)PointerValue;
@@ -500,6 +512,7 @@ template<> inline void Output::GetValue<wstring>(lua_State* L, int idx) const
 	const wchar_t* str = ToWideString(L, idx, &size); 
 	((wstring*)PointerValue)->assign(str, size);
 }
+#endif
 #endif
 
 #if LCBC_USE_MFC
@@ -520,10 +533,10 @@ template<class T, class A> inline void Output::GetCArray(lua_State* L, int idx) 
 {
 	CArray<T,A>* v = (CArray<T,A>*)PointerValue;
 	luaL_checktype(L, idx, LUA_TTABLE);
-	size_t len = lua_objlen(L, idx);
+	int len = (int)lua_objlen(L, idx);
 	int top = lua_gettop(L);
 	v->SetSize(len);
-	for(size_t i=0;i<len;i++)
+	for(int i=0;i<len;i++)
 	{
 		lua_rawgeti(L, idx, i+1);
 		T value;
@@ -553,6 +566,7 @@ template<> inline void Output::GetValue<CStringA>(lua_State* L, int idx) const
 	*(CStringA*)PointerValue = CStringA(str, (int)size);
 }
 
+#if LCBC_USE_WIDESTRING
 template<> inline void Input::PushValue<CStringW>(lua_State* L) const
 {
 	CStringW* str = (CStringW*)PointerValue;
@@ -571,6 +585,7 @@ template<> inline void Output::GetValue<CStringW>(lua_State* L, int idx) const
 	const wchar_t* str = ToWideString(L, idx, &size); 
 	*(CStringW*)PointerValue = CStringW(str, (int)size);
 }
+#endif
 #endif
 
 template<class T>
@@ -734,7 +749,7 @@ private:
 	void PrepareCall(const wchar_t* script_, const Inputs& inputs, const Outputs& outputs)
 	{
 		PrepareCall("", inputs, outputs);
-		Input::PushWideString(L, script_, wcslen(script_));
+		Input::PushWideString(L, script_, 0);
 		script = lua_tostring(L, -1);
 	}
 private:
@@ -809,7 +824,7 @@ private:
 	const Outputs* outputs;
 };
 
-#if LCBC_USE_WIDESTRING == 0
+#if LCBC_USE_WIDESTRING == 1
 inline void Input::PushWideString(lua_State* L, const wchar_t* wstr, size_t len)
 {
 	if(len == 0)
@@ -830,6 +845,57 @@ inline const wchar_t* Output::ToWideString(lua_State* L, int idx, size_t* psize)
 	return res;
 }
 #elif LCBC_USE_WIDESTRING == 2
+inline void Input::PushWideString(lua_State* L, const wchar_t* wstr, size_t len)
+{
+	size_t i;
+	luaL_Buffer b;
+	char buffer[10];
+	if(len == 0)
+		len = wcslen(wstr);
+	luaL_buffinit(L, &b);
+	for(i=0;i<len;i++)
+	{
+		int res = wctomb(buffer, wstr[i]);
+		if(res == -1)
+			luaL_error(L, "Error converting wide string to characters");
+		luaL_addlstring(&b, buffer, res);
+	}
+	luaL_pushresult(&b);
+}
+
+inline const wchar_t* Output::ToWideString(lua_State* L, int idx, size_t* psize)
+{
+	size_t i;
+	luaL_Buffer b;
+	wchar_t wchar;
+	size_t len, pos = 0;
+	const char* psrc = luaL_checklstring(L, idx, &len);
+	luaL_buffinit(L, &b);
+	for(i=0;i<len;i++)
+	{
+		int res = mbtowc(&wchar, psrc+pos, len-pos);
+		if(res == -1)
+			luaL_error(L, "Error converting character to wide string");
+		if(res == 0)
+		{
+			res = 1;
+			wchar = 0;
+		}
+		luaL_addlstring(&b, (const char*)&wchar, sizeof(wchar));
+		pos += res;
+	}
+	wchar = 0;
+	luaL_addlstring(&b, (const char*)&wchar, sizeof(wchar)-1);
+	luaL_pushresult(&b);
+	lua_replace(L, idx-(idx<0));
+	size_t bsize;
+	const wchar_t* res = (const wchar_t*)lua_tolstring(L, idx, &bsize);
+	if(psize)
+		*psize = (bsize-1)/sizeof(wchar_t);
+	return res;
+}
+
+#elif LCBC_USE_WIDESTRING == 3
 inline void Input::PushWideString(lua_State* L, const wchar_t* wstr, size_t len)
 {
 	luaL_Buffer b;
@@ -923,57 +989,11 @@ inline const wchar_t* Output::ToWideString(lua_State* L, int idx, size_t* psize)
 		*psize = (bsize-1)/sizeof(wchar_t);
 	return res;
 }
-#elif LCBC_USE_WIDESTRING == 1
-inline void Input::PushWideString(lua_State* L, const wchar_t* wstr, size_t len)
-{
-	size_t i;
-	luaL_Buffer b;
-	char buffer[10];
-	if(len == 0)
-		len = wcslen(wstr);
-	luaL_buffinit(L, &b);
-	for(i=0;i<len;i++)
-	{
-		int res = wctomb(buffer, wstr[i]);
-		if(res == -1)
-			luaL_error(L, "Error converting wide string to characters");
-		luaL_addlstring(&b, buffer, res);
-	}
-	luaL_pushresult(&b);
-}
+#endif
 
-inline const wchar_t* Output::ToWideString(lua_State* L, int idx, size_t* psize)
-{
-	size_t i;
-	luaL_Buffer b;
-	wchar_t wchar;
-	size_t len, pos = 0;
-	const char* psrc = luaL_checklstring(L, idx, &len);
-	luaL_buffinit(L, &b);
-	for(i=0;i<len;i++)
-	{
-		int res = mbtowc(&wchar, psrc+pos, len-pos);
-		if(res == -1)
-			luaL_error(L, "Error converting character to wide string");
-		if(res == 0)
-		{
-			res = 1;
-			wchar = 0;
-		}
-		luaL_addlstring(&b, (const char*)&wchar, sizeof(wchar));
-		pos += res;
-	}
-	wchar = 0;
-	luaL_addlstring(&b, (const char*)&wchar, sizeof(wchar)-1);
-	luaL_pushresult(&b);
-	lua_replace(L, idx-(idx<0));
-	size_t bsize;
-	const wchar_t* res = (const wchar_t*)lua_tolstring(L, idx, &bsize);
-	if(psize)
-		*psize = (bsize-1)/sizeof(wchar_t);
-	return res;
-}
-
+#if LCBC_USE_WIDESTRING == 0
+#undef wchar_t
+#undef wstring
 #endif
 
 }
