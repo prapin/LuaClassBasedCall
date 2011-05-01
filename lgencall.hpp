@@ -465,9 +465,10 @@ template<class T> inline void Output::GetSet(lua_State* L, int idx) const
 	lua_pushnil(L);
 	while (lua_next(L, idx) != 0)
 	{
+		lua_pushvalue(L, top+1);
 		T key;
 		Output outputKey(key);
-		outputKey.Get(L, top+1);
+		outputKey.Get(L, top+3);
 		lua_settop(L, top+1);
 		s->insert(key);
 	}
@@ -482,9 +483,10 @@ template<class K, class T> inline void Output::GetMap(lua_State* L, int idx) con
 	lua_pushnil(L);
 	while (lua_next(L, idx) != 0)
 	{
+		lua_pushvalue(L, top+1);
 		K key;
 		Output outputKey(key);
-		outputKey.Get(L, top+1);
+		outputKey.Get(L, top+3);
 		T value;
 		Output output(value);
 		output.Get(L, top+2);
