@@ -53,6 +53,8 @@ Features
 *  Generic `const void*` pointers, mapped to light or full userdata
 *  C arrays of any supported type: the number of elements must be
    passed to the explicit constructor as its first argument.
+*  Multidimensional C arrays (like `const int array[2][5][3]`). Only the
+   first dimension (here `2`) has to be passed as the first argument.
 *  Some template classes from the C++ Standard Library. _Any_ supported
    type can be used as template argument T or K.
    * `string`
