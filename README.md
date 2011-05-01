@@ -231,6 +231,7 @@ instance, a Lua string is expected and will be copied into the buffer.
 ### Full example
 
 	#include "lgencall.hpp"
+	#include <stdio.h>
 	
 	using namespace lua;
 	
@@ -254,6 +255,7 @@ instance, a Lua string is expected and will be copied into the buffer.
 		{
 			printf("Lua exception: %s\n", err.str());
 		}
+		return 0;
 	} // The Lua state is closed by the destructor
 
 ### Custom types support
@@ -291,7 +293,7 @@ For output, any type that can be passed by reference can be specialized. The pro
 		int number;
 	};
 	namespace lua {
-	template<> inline void lua::Input::PushValue<tMyStruct>(lua_State* L) const
+	template<> inline void Input::PushValue<tMyStruct>(lua_State* L) const
 	{
 		const tMyStruct* ptr = (const tMyStruct*)PointerValue;
 		lua_createtable(L, 0, 2);
@@ -300,7 +302,7 @@ For output, any type that can be passed by reference can be specialized. The pro
 		lua_pushinteger(L, ptr->number);
 		lua_setfield(L, -2, "number");
 	}
-	template<> inline void lua::Output::GetValue<tMyStruct>(lua_State* L, int idx) const
+	template<> inline void Output::GetValue<tMyStruct>(lua_State* L, int idx) const
 	{
 		tMyStruct* ptr = (tMyStruct*) PointerValue;
 		luaL_checktype(L, idx, LUA_TTABLE);
