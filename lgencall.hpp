@@ -22,19 +22,20 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 1.0.7
+// Version 1.0.9
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
 
 /* LCBC_USE_WIDESTRING defines the support for wide character (Unicode) strings:
-   0 : no conversion, wide character strings are pushed verbatim to the stack (raw bytes);
+   0 : wchar_t and wstring are not supported; to make sure they are #defined to dummy types
+   1 : no conversion, wide character strings are pushed verbatim to the stack (raw bytes);
        script snippets cannot be wchar_t* (you would get syntax errors looking like Chineese)
-   1 : conversions between wchar_t* and char* use wctomb and mbtowc standard functions;
+   2 : conversions between wchar_t* and char* use wctomb and mbtowc standard functions;
        the resulting strings depend on your current locale
-   2 : conversions between wchar_t* and char* are done by the library, using UTF-8 encoding */
+   3 : conversions between wchar_t* and char* are done by the library, using UTF-8 encoding */
 #ifndef LCBC_USE_WIDESTRING
-#define LCBC_USE_WIDESTRING 2
+#define LCBC_USE_WIDESTRING 3
 #endif
 
 /* LCBC_USE_CSL defines if some features of the C++ Standard Library
@@ -61,7 +62,10 @@ extern "C" {
 }
 #include <cstring>
 #include <cstdlib>
+
+#if LCBC_USE_WIDESTRING
 #include <cwchar>
+#endif
 
 #if LCBC_USE_CSL
 #include <string>
@@ -82,6 +86,13 @@ using namespace std;
 
 enum eNil { nil };
 
+#if LCBC_USE_WIDESTRING == 0
+enum dummy_wchar_t {};
+class dummy_wstring {};
+#define wchar_t dummy_wchar_t
+#define wstring dummy_wstring
+#endif
+
 class Input
 {
 public:
@@ -89,7 +100,8 @@ public:
 	Input(bool value) { pPush = &Input::PushBoolean; BooleanValue = value; }
 	Input(lua_CFunction value) { pPush = &Input::PushFunction; FunctionValue = value; Size = 0;}
 	Input(lua_CFunction value, size_t len) { pPush = &Input::PushFunction; FunctionValue = value; Size=len; }
-	template<class T> Input(T value) { pPush = &Input::PushNumber<T>; NumberValue = (lua_Number)value; }
+	template<class T> Input(T value) { pPush = &Input::PushNumber; NumberValue = (lua_Number)value; }
+	template<class T> Input(T* value) { pPush = &Input::PushValue<T>; PointerValue = value; }
 	template<class T> Input(const T* value) { pPush = &Input::PushValue<T>; PointerValue = value; }
 	template<class T> Input(const T* value, size_t size) { pPush = &Input::PushSizedValue<T>; PointerValue = value; Size = size; }
 	template<class T> Input(size_t len, const T* value) { pPush = &Input::PushArray<T>; PointerValue = value; Size=len; }
@@ -215,7 +227,7 @@ template<class T> inline void Input::PushArray(lua_State* L) const
 	{
 		Input input(arr[i]);
 		input.Push(L);
-		lua_rawseti(L, -2, i+1);
+		lua_rawseti(L, -2, (int)i+1);
 	}
 }
 
@@ -227,7 +239,7 @@ template<class T, size_t L2> inline void Input::Push2DArray(lua_State* L) const
 	{
 		Input input(L2, arr[i]);
 		input.Push(L);
-		lua_rawseti(L, -2, i+1);
+		lua_rawseti(L, -2, (int)i+1);
 	}
 }
 
@@ -285,7 +297,7 @@ template<class T> inline void Output::GetArray(lua_State* L, int idx) const
 	int top = lua_gettop(L);
 	for(size_t i=0;i<len;i++)
 	{
-		lua_rawgeti(L, idx, i+1);
+		lua_rawgeti(L, idx, (int)i+1);
 		Output output(arr[i]);
 		output.Get(L,top+1);
 		lua_settop(L, top);
@@ -300,7 +312,7 @@ template<class T, size_t L2> inline void Output::Get2DArray(lua_State* L, int id
 	int top = lua_gettop(L);
 	for(size_t i=0;i<len;i++)
 	{
-		lua_rawgeti(L, idx, i+1);
+		lua_rawgeti(L, idx, (int)i+1);
 		size_t len2 = L2;
 		Output output(len2, arr[i]);
 		output.Get(L,top+1);
@@ -310,7 +322,7 @@ template<class T, size_t L2> inline void Output::Get2DArray(lua_State* L, int id
 
 template<> inline void Input::PushValue<wchar_t>(lua_State* L) const
 {
-	PushWideString(L, (const wchar_t*)PointerValue, NULL);
+	PushWideString(L, (const wchar_t*)PointerValue, 0);
 }
 
 template<> inline void Input::PushSizedValue<wchar_t>(lua_State* L) const
@@ -344,7 +356,7 @@ template<class T> inline void Input::PushVector(lua_State* L) const
 	{
 		Input input(v->at(i));
 		input.Push(L);
-		lua_rawseti(L, -2, i+1);
+		lua_rawseti(L, -2, (int)i+1);
 	}
 }
 
@@ -419,7 +431,7 @@ template<class T> inline void Output::GetVector(lua_State* L, int idx) const
 	int top = lua_gettop(L);
 	for(size_t i=0;i<len;i++)
 	{
-		lua_rawgeti(L, idx, i+1);
+		lua_rawgeti(L, idx, (int)i+1);
 		T value;
 		Output output(value);
 		output.Get(L, top+1);
@@ -436,7 +448,7 @@ template<class T> inline void Output::GetList(lua_State* L, int idx) const
 	int top = lua_gettop(L);
 	for(size_t i=0;i<len;i++)
 	{
-		lua_rawgeti(L, idx, i+1);
+		lua_rawgeti(L, idx, (int)i+1);
 		T value;
 		Output output(value);
 		output.Get(L, top+1);
@@ -482,6 +494,7 @@ template<class K, class T> inline void Output::GetMap(lua_State* L, int idx) con
 	lua_settop(L, top);
 }
 
+#if LCBC_USE_WIDESTRING
 template<> inline void Input::PushValue<wstring>(lua_State* L) const
 {
 	wstring* str = (wstring*)PointerValue;
@@ -500,6 +513,7 @@ template<> inline void Output::GetValue<wstring>(lua_State* L, int idx) const
 	const wchar_t* str = ToWideString(L, idx, &size); 
 	((wstring*)PointerValue)->assign(str, size);
 }
+#endif
 #endif
 
 #if LCBC_USE_MFC
@@ -520,10 +534,10 @@ template<class T, class A> inline void Output::GetCArray(lua_State* L, int idx) 
 {
 	CArray<T,A>* v = (CArray<T,A>*)PointerValue;
 	luaL_checktype(L, idx, LUA_TTABLE);
-	size_t len = lua_objlen(L, idx);
+	int len = (int)lua_objlen(L, idx);
 	int top = lua_gettop(L);
 	v->SetSize(len);
-	for(size_t i=0;i<len;i++)
+	for(int i=0;i<len;i++)
 	{
 		lua_rawgeti(L, idx, i+1);
 		T value;
@@ -553,6 +567,7 @@ template<> inline void Output::GetValue<CStringA>(lua_State* L, int idx) const
 	*(CStringA*)PointerValue = CStringA(str, (int)size);
 }
 
+#if LCBC_USE_WIDESTRING
 template<> inline void Input::PushValue<CStringW>(lua_State* L) const
 {
 	CStringW* str = (CStringW*)PointerValue;
@@ -571,6 +586,7 @@ template<> inline void Output::GetValue<CStringW>(lua_State* L, int idx) const
 	const wchar_t* str = ToWideString(L, idx, &size); 
 	*(CStringW*)PointerValue = CStringW(str, (int)size);
 }
+#endif
 #endif
 
 template<class T>
@@ -625,24 +641,19 @@ private:
 	const T** Arguments;
 };
 
-class ErrorA
+template<class C>
+class ErrorT
 {
 public:
-	ErrorA(const char* message) : Message(message)  {}
-	operator const char*() const { return Message; }
+	ErrorT(const C* message) : Message(message)  {}
+	operator const C*() const { return Message; }
+	const C* str() const { return Message; }
 private:
-	const char* Message;
+	const C* Message;
 };
 
-class ErrorW
-{
-public:
-	ErrorW(const wchar_t* message) : Message(message)  {}
-	operator const wchar_t*() const { return Message; }
-private:
-	const wchar_t* Message;
-};
-
+typedef ErrorT<char> ErrorA;
+typedef ErrorT<wchar_t> ErrorW;
 #if defined(_UNICODE) || defined(UNICODE)
 typedef ErrorW Error;
 #else
@@ -682,62 +693,56 @@ public:
 		FlushCache();
 		return *this;
 	}
-	operator lua_State*() { return L; }
+	operator lua_State*() const { return L; }
 	void FlushCache()
 	{
 		lua_createtable(L, 0, 0);
-		lua_setfield(L, LUA_REGISTRYINDEX, "LuaGenericC++Caller");
+		lua_setfield(L, LUA_REGISTRYINDEX, "LuaClassBasedCaller");
 	}
-	void Call(const char* script, const Outputs& outputs) { Call(script, Inputs(), outputs); }
-	const char* PCall(const char* script, const Outputs& outputs) { return PCall(script, Inputs(), outputs); }
-	void ExceptCall(const char* script, const Outputs& outputs) { ExceptCall(script, Inputs(), outputs); }
-	void Call(const char* script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
+	template<class C> void UCall(const C* script, const Input& input, const Output& output = nil) { UCall(script, Inputs(input), Outputs(output)); }
+	template<class C> void UCall(const C* script, const Outputs& outputs) { UCall<C>(script, Inputs(), outputs); }
+	template<class C> void UCall(const C* script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
 	{
 		PrepareCall(script, inputs, outputs);
 		DoCall();
 	}
-	const char* PCall(const char* script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
+	template<class C> const C* PCall(const C* script, const Input& input, const Output& output = nil) {  return PCall<C>(script, Inputs(input), Outputs(output)); }
+	template<class C> const C* PCall(const C* script, const Outputs& outputs) { return PCall<C>(script, Inputs(), outputs); }
+	template<class C> const C* PCall(const C* script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
 	{
 		PrepareCall(script, inputs, outputs);
 		if(lua_cpcall(L, DoCall, this))
-			return lua_tostring(L, -1);
+			return GetString(lua_gettop(L), *script);
 		return NULL;
 	}
-	void ExceptCall(const char* script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
+	template<class C> void ECall(const C* script, const Input& input, const Output& output = nil) { ECall<C>(script, Inputs(input), Outputs(output)); }
+	template<class C> void ECall(const C* script, const Outputs& outputs) { ECall<C>(script, Inputs(), outputs); }
+	template<class C> void ECall(const C* script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
 	{
-		const char* error = PCall(script, inputs, outputs);
+		const C* error = PCall<C>(script, inputs, outputs);
 		if(error)
-			throw ErrorA(error);
+			throw ErrorT<C>(error);
 	}
-	void Call(const wchar_t* script, const Outputs& outputs) { Call(script, Inputs(), outputs); }
-	const wchar_t* PCall(const wchar_t* script, const Outputs& outputs) { return PCall(script, Inputs(), outputs); }
-	void ExceptCall(const wchar_t* script, const Outputs& outputs) { ExceptCall(script, Inputs(), outputs); }
-	void Call(const wchar_t* script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
-	{
-		PrepareCall(script, inputs, outputs);
-		DoCall();
-	}
-	const wchar_t* PCall(const wchar_t* script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
-	{
-		PrepareCall(script, inputs, outputs);
-		if(lua_cpcall(L, DoCall, this))
-			return Output::ToWideString(L, lua_gettop(L), NULL);
-		return NULL;
-	}
-	void ExceptCall(const wchar_t* script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
-	{
-		const wchar_t* error = PCall(script, inputs, outputs);
-		if(error)
-			throw ErrorW(error);
-	}
+	typedef const Input& ref;
+	template<class T,class C> T TCall(const C* script) { return DoTCall<T,C>(script, Inputs()); }
+	template<class T,class C> T TCall(const C* script, ref arg1) { return DoTCall<T,C>(script, arg1); }
+	template<class T,class C> T TCall(const C* script, ref arg1, ref arg2) { return DoTCall<T,C>(script, Inputs(arg1, arg2)); }
+	template<class T,class C> T TCall(const C* script, ref arg1, ref arg2, ref arg3, ref arg4=nil) 
+		{ return DoTCall<T,C>(script, Inputs(arg1, arg2, arg3, arg4)); }
+	template<class T,class C> T TCall(const C* script, ref arg1, ref arg2, ref arg3, ref arg4, ref arg5, ref arg6=nil, ref arg7=nil, ref arg8=nil) 
+		{ return DoTCall<T,C>(script, Inputs(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)); }
+	template<class T,class C> T TCall(const C* script, ref arg1, ref arg2, ref arg3, ref arg4, ref arg5, ref arg6, ref arg7, ref arg8,
+		ref arg9, ref arg10=nil, ref arg11=nil, ref arg12=nil, ref arg13=nil, ref arg14=nil, ref arg15=nil, ref arg16=nil)
+		{ return DoTCall<T,C>(script, Inputs(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16)); }
 private:
+	const char* GetString(int idx, char) { return lua_tostring(L, idx); }
+	const wchar_t* GetString(int idx, wchar_t) { return Output::ToWideString(L, idx, NULL); }
 	void PrepareCall(const wchar_t* script_, const Inputs& inputs, const Outputs& outputs)
 	{
 		PrepareCall("", inputs, outputs);
-		Input::PushWideString(L, script_, wcslen(script_));
+		Input::PushWideString(L, script_, 0);
 		script = lua_tostring(L, -1);
 	}
-private:
 	void PrepareCall(const char* script_, const Inputs& inputs_, const Outputs& outputs_)
 	{
 		lua_settop(L, 0);
@@ -749,7 +754,7 @@ private:
 	{
 		lua_pushcfunction(L, traceback);
 		int idxtrace = lua_gettop(L);
-		lua_getfield(L, LUA_REGISTRYINDEX, "LuaGenericC++Caller");
+		lua_getfield(L, LUA_REGISTRYINDEX, "LuaClassBasedCaller");
 		lua_getfield(L, -1, script);
 		if(!lua_isfunction(L, -1))
 		{
@@ -773,6 +778,12 @@ private:
 		This->DoCall();
 		return 0;
 	}
+	template<class T,class C> T DoTCall(const C* script, const Inputs& inputs)
+	{
+		T value;
+		ECall<C>(script, inputs, Outputs(value));
+		return value;
+	}
 	/* Function copied from lua.c */
 	static int traceback (lua_State *L) 
 	{
@@ -793,11 +804,11 @@ private:
 	}
 	lua_Integer IncrRetainCount(int incr)
 	{
-		lua_getfield(L, LUA_REGISTRYINDEX, "LuaGenericC++RetainCount");
+		lua_getfield(L, LUA_REGISTRYINDEX, "LuaClassBasedRetainCount");
 		lua_Integer count = lua_tointeger(L, -1);
 		count = count + incr;
 		lua_pushinteger(L, count);
-		lua_setfield(L, LUA_REGISTRYINDEX, "LuaGenericC++RetainCount");
+		lua_setfield(L, LUA_REGISTRYINDEX, "LuaClassBasedRetainCount");
 		return count;
 	}
 	void Retain() { IncrRetainCount(1); }
@@ -809,7 +820,10 @@ private:
 	const Outputs* outputs;
 };
 
-#if LCBC_USE_WIDESTRING == 0
+template<> inline void Lua::DoTCall<void, char>(const char* script, const Inputs& inputs) {	ECall<char>(script, inputs); }
+template<> inline void Lua::DoTCall<void, wchar_t>(const wchar_t* script, const Inputs& inputs) { ECall<wchar_t>(script, inputs); }
+
+#if LCBC_USE_WIDESTRING == 1
 inline void Input::PushWideString(lua_State* L, const wchar_t* wstr, size_t len)
 {
 	if(len == 0)
@@ -830,6 +844,57 @@ inline const wchar_t* Output::ToWideString(lua_State* L, int idx, size_t* psize)
 	return res;
 }
 #elif LCBC_USE_WIDESTRING == 2
+inline void Input::PushWideString(lua_State* L, const wchar_t* wstr, size_t len)
+{
+	size_t i;
+	luaL_Buffer b;
+	char buffer[10];
+	if(len == 0)
+		len = wcslen(wstr);
+	luaL_buffinit(L, &b);
+	for(i=0;i<len;i++)
+	{
+		int res = wctomb(buffer, wstr[i]);
+		if(res == -1)
+			luaL_error(L, "Error converting wide string to characters");
+		luaL_addlstring(&b, buffer, res);
+	}
+	luaL_pushresult(&b);
+}
+
+inline const wchar_t* Output::ToWideString(lua_State* L, int idx, size_t* psize)
+{
+	size_t i;
+	luaL_Buffer b;
+	wchar_t wchar;
+	size_t len, pos = 0;
+	const char* psrc = luaL_checklstring(L, idx, &len);
+	luaL_buffinit(L, &b);
+	for(i=0;i<len;i++)
+	{
+		int res = mbtowc(&wchar, psrc+pos, len-pos);
+		if(res == -1)
+			luaL_error(L, "Error converting character to wide string");
+		if(res == 0)
+		{
+			res = 1;
+			wchar = 0;
+		}
+		luaL_addlstring(&b, (const char*)&wchar, sizeof(wchar));
+		pos += res;
+	}
+	wchar = 0;
+	luaL_addlstring(&b, (const char*)&wchar, sizeof(wchar)-1);
+	luaL_pushresult(&b);
+	lua_replace(L, idx-(idx<0));
+	size_t bsize;
+	const wchar_t* res = (const wchar_t*)lua_tolstring(L, idx, &bsize);
+	if(psize)
+		*psize = (bsize-1)/sizeof(wchar_t);
+	return res;
+}
+
+#elif LCBC_USE_WIDESTRING == 3
 inline void Input::PushWideString(lua_State* L, const wchar_t* wstr, size_t len)
 {
 	luaL_Buffer b;
@@ -923,57 +988,11 @@ inline const wchar_t* Output::ToWideString(lua_State* L, int idx, size_t* psize)
 		*psize = (bsize-1)/sizeof(wchar_t);
 	return res;
 }
-#elif LCBC_USE_WIDESTRING == 1
-inline void Input::PushWideString(lua_State* L, const wchar_t* wstr, size_t len)
-{
-	size_t i;
-	luaL_Buffer b;
-	char buffer[10];
-	if(len == 0)
-		len = wcslen(wstr);
-	luaL_buffinit(L, &b);
-	for(i=0;i<len;i++)
-	{
-		int res = wctomb(buffer, wstr[i]);
-		if(res == -1)
-			luaL_error(L, "Error converting wide string to characters");
-		luaL_addlstring(&b, buffer, res);
-	}
-	luaL_pushresult(&b);
-}
+#endif
 
-inline const wchar_t* Output::ToWideString(lua_State* L, int idx, size_t* psize)
-{
-	size_t i;
-	luaL_Buffer b;
-	wchar_t wchar;
-	size_t len, pos = 0;
-	const char* psrc = luaL_checklstring(L, idx, &len);
-	luaL_buffinit(L, &b);
-	for(i=0;i<len;i++)
-	{
-		int res = mbtowc(&wchar, psrc+pos, len-pos);
-		if(res == -1)
-			luaL_error(L, "Error converting character to wide string");
-		if(res == 0)
-		{
-			res = 1;
-			wchar = 0;
-		}
-		luaL_addlstring(&b, (const char*)&wchar, sizeof(wchar));
-		pos += res;
-	}
-	wchar = 0;
-	luaL_addlstring(&b, (const char*)&wchar, sizeof(wchar)-1);
-	luaL_pushresult(&b);
-	lua_replace(L, idx-(idx<0));
-	size_t bsize;
-	const wchar_t* res = (const wchar_t*)lua_tolstring(L, idx, &bsize);
-	if(psize)
-		*psize = (bsize-1)/sizeof(wchar_t);
-	return res;
-}
-
+#if LCBC_USE_WIDESTRING == 0
+#undef wchar_t
+#undef wstring
 #endif
 
 }
