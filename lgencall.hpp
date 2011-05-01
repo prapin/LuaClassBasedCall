@@ -713,7 +713,7 @@ public:
 	template<class C> const C* PCall(const C* script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
 	{
 		PrepareCall(script, inputs, outputs);
-		if(lua_cpcall(L, DoCall, this))
+		if(lua_cpcall(L, (lua_CFunction)DoCallS, this))
 			return GetString(lua_gettop(L), *script);
 		return NULL;
 	}
@@ -754,7 +754,7 @@ private:
 	}
 	void DoCall()
 	{
-		lua_pushcfunction(L, traceback);
+		lua_pushcfunction(L, (lua_CFunction)traceback);
 		int idxtrace = lua_gettop(L);
 		lua_getfield(L, LUA_REGISTRYINDEX, "LuaClassBasedCaller");
 		lua_getfield(L, -1, script);
@@ -774,7 +774,7 @@ private:
 		for(size_t i=0;i<outputs->size(); i++)
 			outputs->get(i).Get(L, (int)i+base);
 	}
-	static int DoCall(lua_State* L)
+	static int DoCallS(lua_State* L)
 	{
 		Lua* This = (Lua*)lua_topointer(L, 1);
 		This->DoCall();
