@@ -103,14 +103,39 @@ The header file defines the following classes:
 			when calling the constructor.
 * `Inputs`: Defined as `Array<Input>`, it represents all input arguments for a call.
 * `Outputs`: Similarly defined as `Array<Output>`, it represents all result variables from a call.
-* `ErrorA`: A simple container for a string, used to throw Lua errors as C++ exceptions.
-* `ErrorW`: The same as `ErrorA`, but with a wide character string.
+* `ErrorT<C>: A simple container for a string, used to throw Lua errors as C++ exceptions.
+              The C parameter can either be `char` or `wchar_t`.
+* `ErrorA`: Defined as `ErrorT<char>`
+* `ErrorW`: Defined as `ErrorT<wchar_t>`
 * `Error`: Defined to either `ErrorA` or `ErrorW`, depending on the definition of `UNICODE`.
 * `Lua`: The main class. It is responsible to open and close the Lua state, and most importantly
          to call Lua using a script, passing inputs and retrieving outputs. There are several
-         forms of calling interfaces (`Call`, `PCall` and `ExceptCall`) and a number of overloads 
+         forms of calling interfaces (`UCall`, `PCall`, `ECall`, `TCall`) and a number of overloads 
          to handle all user cases.
-             
+
+### Calling syntax
+
+A Lua call follow one of the following generic syntax:
+
+	luaObject . {UCall|PCall|ECall} ( [L]"lua code to execute" [, Inputs(inargs...)] [, Outputs(outargs...)] );
+	luaObject . {UCall|PCall|ECall} ( [L]"lua code to execute", inarg [, outarg] );
+	T outval = luaObject . TCall<T> ( [L]"lua code to execute" [, inargs...] );
+
+As introduced earlier, `Lua` class has 4 different methods for performing a call to Lua. 
+
+*  `UCall`: performs an unprotected Lua call, like lua_call API function. Lua will panic
+            in case of errors, except if run under a protected environment.
+*  `PCall`: does a protected call, using lua_pcall function. That interface has a string
+            return type, returning either `NULL` when no error happens, or the error
+			message including the stack trace when a Lua compile-time or run-time occurs.
+*  `ECall`: calls Lua and throws exceptions in case of errors. You will need to catch
+            `Error` objects to handle error messages.
+*  `TCall`: has an alternate syntax inspired from luabind::call_function. In this variant,
+            inputs aruguments are simply placed after the code snippet, without the Inputs
+			constructor. There are no Outputs arguments, instead one (or zero) output result
+			is directly returned by the function. You have to specify the template return type.
+            TCall also throws an exception in case of errors.			
+
 ### Code footprint
 
 All functions being `inline`, the footprint highly depends on the usage. Just including `lgencall.hpp`
@@ -144,18 +169,18 @@ and `luaL_openlibs`. Similarly, the destructor calls `lua_close`. Since there is
 conversion to `lua_State*`, that main object can be passed as the first argument to
 any Lua API function when needed.
 
-You can now easily call Lua snippets. You have to decide if you prefer to use unprotected
-calls (if Lua errors are caught at a higher level), protected calls (please check returned error messages),
-or exception calls (don't forget to catch errors). Also, especially on Windows, you might
+You can now easily call Lua snippets. You have to decide which calling interface (`?Call`)
+best fits your needs. Also, especially on Windows, you might
 prefer to use wide character string versions of the functions. Note that if the code
 snipped is a wide character string, so will the returned error message or the exception object.
 
-A Lua call has the following generic syntax:
-
-	luaObject . {Call|PCall|ExceptCall} ( [L]"lua code to execute" [, Inputs(...)] [, Outputs(...)] );
-
 The Lua script gets its arguments using the `...` syntax introduced in Lua 5.1, and 
-outputs its results using the `return` keyword, like a regular function.
+outputs its results using the `return` keyword. Think of it
+as if the snippet was included inside a function definition like this
+
+	function fct(...) 
+		-- your script snippet goes here 
+	end
 	
 ### Input arguments
 
@@ -210,22 +235,86 @@ instance, a Lua string is expected and will be copied into the buffer.
 	int main(int argc, char* argv[])
 	{
 		Lua L;  // The constructor will open a new Lua state and include libraries
-		L.Call("print('Hello world')"); // Lua will panic in case of runtime error
+		L.UCall("print('Hello world')"); // Lua will panic in case of runtime error
 		const char* error = L.PCall("mytable = {...};", Inputs(true, 2, 3.1416, "Hello", L"world"));
 		if(error)
 			printf("Lua error : %s\n", error);
 		try
 		{
-			L.ExceptCall("for k,v in pairs(mytable) do print(k,v,type(v)) end");
+			L.ECall("for k,v in pairs(mytable) do print(k,v,type(v)) end");
 			bool res1; double res2; float res3; const wchar_t* res4; const char* res5;
-			L.ExceptCall("return unpack(mytable)", Outputs(res1, res2, res3, res4, res5));
+			L.ECall("return unpack(mytable)", Outputs(res1, res2, res3, res4, res5));
 			printf("mytable = { %d, %g, %g, %S, %s }\n", res1, res2, res3, res4, res5);
+			double sum = L.TCall<double>("local a,b,c=...; return a+b+c", 2.3, 4, 3.1416);
+			printf("The sum is %g\n", sum);
 		}
 		catch(Error err)
 		{
-			printf("Lua exception: %s\n", (const char*)err);
+			printf("Lua exception: %s\n", err.str());
 		}
 	} // The Lua state is closed by the destructor
 
+### Custom types support
 
+It is normally possible to input and output custom types like structures or classes, by using
+template specialization, without modifying `lgencall.hpp` source file.
 
+For input, the custom type must be a _pointer_ (if it is not, just pass the address of your value),
+and defines a function of the following form (you must be under the namespace `lua`):
+
+	namespace lua {
+	template<> inline void Input::PushValue<yourType>(lua_State* L) const
+	{
+		const yourType* ptr = (const yourType*)PointerValue;
+		// Push *ptr to Lua stack the way you want
+	}
+	}
+
+For output, any type that can be passed by reference can be specialized. The prototype is:
+	
+	namespace lua {
+	template<> inline void Output::GetValue<yourType>(lua_State* L, int idx) const
+	{
+		yourType* ptr = (yourType*) PointerValue;
+		// Retrieve your value from Lua stack at index idx and set it to *ptr
+	}
+	}
+
+#### Custom type example
+
+	#include "lgencall.hpp"
+	struct tMyStruct
+	{
+		const char* text;
+		int number;
+	};
+	namespace lua {
+	template<> inline void lua::Input::PushValue<tMyStruct>(lua_State* L) const
+	{
+		const tMyStruct* ptr = (const tMyStruct*)PointerValue;
+		lua_createtable(L, 0, 2);
+		lua_pushstring(L, ptr->text);
+		lua_setfield(L, -2, "text");
+		lua_pushinteger(L, ptr->number);
+		lua_setfield(L, -2, "number");
+	}
+	template<> inline void lua::Output::GetValue<tMyStruct>(lua_State* L, int idx) const
+	{
+		tMyStruct* ptr = (tMyStruct*) PointerValue;
+		luaL_checktype(L, idx, LUA_TTABLE);
+		lua_getfield(L, idx, "text");
+		ptr->text = luaL_checkstring(L, -1);
+		lua_getfield(L, idx, "number");
+		ptr->number = luaL_checkint(L, -1);
+		lua_pop(L, 2);
+	}
+	}
+	int main(int argc, char* argv[])
+	{
+		using namespace lua;
+		Lua L;
+		tMyStruct s1 = {"Hello world", 42}, s2;
+		L.UCall("local s=...; print(s.text, s.number); s.text='new text'; return s", &s1, s2);
+		printf("text = '%s', number = %d\n", s2.text, s2.number);
+		return 0;
+	}
