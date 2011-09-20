@@ -55,6 +55,13 @@
 #define LCBC_USE_MFC 0
 #endif
 
+/* LCBC_USE_EXCEPTIONS enables use of exceptions to signal Lua error.
+   On some embedded systems, exceptions are switched off to save code.
+*/
+#ifndef LCBC_USE_EXCEPTIONS
+#define LCBC_USE_EXCEPTIONS 1
+#endif
+
 extern "C" {
 #include "lua.h"
 #include "lauxlib.h"
@@ -720,11 +727,15 @@ public:
 	template<class C> void ECall(const C* script, const Input& input, const Output& output = nil) { ECall<C>(script, Inputs(input), Outputs(output)); }
 	template<class C> void ECall(const C* script, const Outputs& outputs) { ECall<C>(script, Inputs(), outputs); }
 	template<class C> void ECall(const C* script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
+#if LCBC_USE_EXCEPTIONS
 	{
 		const C* error = PCall<C>(script, inputs, outputs);
 		if(error)
 			throw ErrorT<C>(error);
 	}
+#else
+	;
+#endif		
 	typedef const Input& ref;
 	template<class T,class C> T TCall(const C* script) { return DoTCall<T,C>(script, Inputs()); }
 	template<class T,class C> T TCall(const C* script, ref arg1) { return DoTCall<T,C>(script, arg1); }

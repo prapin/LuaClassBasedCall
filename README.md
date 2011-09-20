@@ -105,8 +105,8 @@ The header file defines the following classes:
 			when calling the constructor.
 * `Inputs`: Defined as `Array<Input>`, it represents all input arguments for a call.
 * `Outputs`: Similarly defined as `Array<Output>`, it represents all result variables from a call.
-* `ErrorT<C>: A simple container for a string, used to throw Lua errors as C++ exceptions.
-              The C parameter can either be `char` or `wchar_t`.
+* `ErrorT<C>`: A simple container for a string, used to throw Lua errors as C++ exceptions.
+               The C parameter can either be `char` or `wchar_t`.
 * `ErrorA`: Defined as `ErrorT<char>`
 * `ErrorW`: Defined as `ErrorT<wchar_t>`
 * `Error`: Defined to either `ErrorA` or `ErrorW`, depending on the definition of `UNICODE`.
@@ -131,7 +131,7 @@ As introduced earlier, `Lua` class has 4 different methods for performing a call
             return type, returning either `NULL` when no error happens, or the error
 			message including the stack trace when a Lua compile-time or run-time occurs.
 *  `ECall`: calls Lua and throws exceptions in case of errors. You will need to catch
-            `Error` objects to handle error messages.
+            `ErrorT<C>` objects to handle error messages.
 *  `TCall`: has an alternate syntax inspired from luabind::call_function. In this variant,
             inputs aruguments are simply placed after the code snippet, without the Inputs
 			constructor. There are no Outputs arguments, instead one (or zero) output result
