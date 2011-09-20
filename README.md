@@ -125,18 +125,18 @@ A Lua call follow one of the following generic syntax:
 
 As introduced earlier, `Lua` class has 4 different methods for performing a call to Lua. 
 
-*  `UCall`: performs an unprotected Lua call, like lua_call API function. Lua will panic
+*  `UCall`: performs an unprotected Lua call, like `lua_call` API function. Lua will panic
             in case of errors, except if run under a protected environment.
-*  `PCall`: does a protected call, using lua_pcall function. That interface has a string
+*  `PCall`: does a protected call, using `lua_pcall` function. That interface has a string
             return type, returning either `NULL` when no error happens, or the error
 			message including the stack trace when a Lua compile-time or run-time occurs.
 *  `ECall`: calls Lua and throws exceptions in case of errors. You will need to catch
             `ErrorT<C>` objects to handle error messages.
-*  `TCall`: has an alternate syntax inspired from luabind::call_function. In this variant,
-            inputs aruguments are simply placed after the code snippet, without the Inputs
-			constructor. There are no Outputs arguments, instead one (or zero) output result
+*  `TCall`: has an alternate syntax inspired from `luabind::call_function`. In this variant,
+            inputs aruguments are simply placed after the code snippet, without the `Inputs`
+			constructor. There are no `Outputs` arguments, instead one (or zero) output result
 			is directly returned by the function. You have to specify the template return type.
-            TCall also throws an exception in case of errors.			
+            `TCall` also throws an exception in case of errors.			
 
 ### Code footprint
 
