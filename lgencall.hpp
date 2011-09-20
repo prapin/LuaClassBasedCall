@@ -22,7 +22,7 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 1.0.10
+// Version 1.1.1
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
@@ -86,6 +86,10 @@ extern "C" {
 #define _WIN32_WINNT 0x0500
 #include <afx.h>
 #include <afxtempl.h>
+#endif
+
+#if (LUA_VERSION_NUM >= 502) && !defined(lua_objlen)
+#define lua_objlen(L,i)		lua_rawlen(L, (i))
 #endif
 
 namespace lua {
@@ -675,10 +679,11 @@ typedef Array<Output> Outputs;
 class Lua
 {
 public:
-	Lua()
+	Lua(bool fOpenLibs=true)
 	{ 
 		L = luaL_newstate(); 
-		luaL_openlibs(L); 
+		if(fOpenLibs)
+			luaL_openlibs(L); 
 		FlushCache();
 	}
 	Lua(lua_State* l) 
@@ -720,8 +725,15 @@ public:
 	template<class C> const C* PCall(const C* script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
 	{
 		PrepareCall(script, inputs, outputs);
+#if LUA_VERSION_NUM >= 502
+		lua_pushcfunction(L, DoCallS);
+		lua_pushlightuserdata(L, this);
+		if(lua_pcall(L, 1, 0, 0))
+			return GetString(lua_gettop(L), *script);
+#else
 		if(lua_cpcall(L, (lua_CFunction)DoCallS, this))
 			return GetString(lua_gettop(L), *script);
+#endif
 		return NULL;
 	}
 	template<class C> void ECall(const C* script, const Input& input, const Output& output = nil) { ECall<C>(script, Inputs(input), Outputs(output)); }
@@ -771,7 +783,12 @@ private:
 		lua_getfield(L, -1, script);
 		if(!lua_isfunction(L, -1))
 		{
-			if(luaL_loadstring(L, script))
+			int res;
+			if(*script == '@')
+				res = luaL_loadfile(L, script+1);
+			else
+				res = luaL_loadstring(L, script);
+			if(res)
 				lua_error(L);
 			lua_pushvalue(L, -1);
 			lua_setfield(L, -4, script);
@@ -800,7 +817,7 @@ private:
 	/* Function copied from lua.c */
 	static int traceback (lua_State *L) 
 	{
-		lua_getfield(L, LUA_GLOBALSINDEX, "debug");
+		lua_getglobal(L, "debug");
 		if (!lua_istable(L, -1)) {
 			lua_pop(L, 1);
 			return 1;
