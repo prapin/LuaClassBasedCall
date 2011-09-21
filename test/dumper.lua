@@ -37,7 +37,7 @@ for _,t in pairs(closures) do
   end 
 end
 ]]
-
+ 
 local lua_reserved_keywords = {
   'and', 'break', 'do', 'else', 'elseif', 'end', 'false', 'for', 
   'function', 'if', 'in', 'local', 'nil', 'not', 'or', 'repeat', 
@@ -91,11 +91,9 @@ function DataDumper(value, varname, fastmode, ident)
     number = function(value) return value end,
     boolean = function(value) return tostring(value) end,
     ['nil'] = function(value) return 'nil' end,
-    ['function'] = function(value) 
-      return string_format("loadstring(%q)", string_dump(value)) 
-    end,
-    userdata = function() error("Cannot dump userdata") end,
-    thread = function() error("Cannot dump threads") end,
+    ['function'] = function(value) return "[function]" end,
+    userdata = function() return "[userdata]" end,
+    thread = function() return "[thread]" end,
   }
   local function test_defined(value, path)
     if defined[value] then
