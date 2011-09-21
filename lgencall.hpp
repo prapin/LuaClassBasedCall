@@ -1,4 +1,4 @@
-/******************************************************************************
+	/******************************************************************************
 * Copyright (C) 2011 Olivetti Engineering SA, CH 1400 Yverdon-les-Bains.  
 * Original author: Patrick Rapin. All rights reserved.
 *
@@ -182,7 +182,7 @@ public:
 	static const wchar_t* ToWideString(lua_State* L, int idx, size_t* psize);
 private:
 	size_t GetSize(size_t s1) const { size_t s2=*pSize; *pSize=s1; return s1 < s2 ? s1 : s2; }
-	void GetNil(lua_State* L, int idx) const {}
+	void GetNil(lua_State* /*L*/, int /*idx*/) const {}
 	template<class T> void GetValue(lua_State* L, int idx) const { *(T*)PointerValue = (T)luaL_checknumber(L, idx); }
 	template<class T> void GetSizedValue(lua_State* L, int idx) const;
 	template<class T> void GetArray(lua_State* L, int idx) const;
@@ -981,7 +981,7 @@ inline const wchar_t* Output::ToWideString(lua_State* L, int idx, size_t* psize)
 			value = car;
 		else
 		{
-			for(i=1,mask=0x40;car & mask;i++,mask>>=1);
+			for(i=1,mask=0x40;car & mask;i++,mask>>=1) ;
 			value = car & (mask - 1);
 			if(i == 1 || (value == 0 && (*str & 0x3F) < (0x100 >> i)))
 				luaL_error(L, "overlong character in UTF-8");

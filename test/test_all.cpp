@@ -1,65 +1,77 @@
 // Two configuration flags
-#define LUA_DYNAMIC_LOAD 0
-#define LUA_USE_UNICODE  0
 #define LCBC_USE_MFC 0
 #define LCBC_USE_CSL 1
 
-#if LUA_USE_UNICODE
- #define _UNICODE
- #define UNICODE
-#endif
-
-#include <stdlib.h>
-#include <string.h>
+#define _CRT_SECURE_NO_WARNINGS
 #include <assert.h>
 #include <tchar.h>
 #include "lgencall.hpp"
-#include <stdint.h>
+#include "test.hpp"
+
 
 using namespace lua;
 using namespace std;
 
 #define countof(a)  (sizeof(a) / sizeof(a[0]))
 
-
-static uint32_t crc_table[256];
-static void make_crc_table()
+Test::Test(bool fverbose)
+:	fVerbose(fverbose),
+	PassedCnt(0),
+	FailedCnt(0)
 {
-    /* generate a crc for every 8-bit value */
+	MakeCrcTable();
+}
+		
+bool Test::Report(bool result, PSTRING error_msg, PSTRING test_msg)
+{
+	if(result)
+	{
+		PassedCnt++;
+		sprintf("[PASSED] %s\n", fVerbose ? test_msg : "");
+	}
+	else
+	{
+		FailedCnt++;
+		sprintf("[FAILED] %s %s\n", error_msg, fVerbose ? test_msg : "");
+	}
+	return result;
+}
+
+void Test::MakeCrcTable()
+{
+    // generate a crc for every 8-bit value
     for (int n = 0; n < 256; n++) {
         uint32_t c = (uint32_t)n;
         for (int k = 0; k < 8; k++)
             c = c & 1 ? 0xedb88320UL ^ (c >> 1) : c >> 1;
-        crc_table[n] = c;
+        CrcTable[n] = c;
     }
  }
 
-static uint32_t crc32(const uint8_t* buf, size_t len)
+uint32_t Test::ComputeCrc(const uint8_t* buf, size_t len)
 {
-    if (crc_table[1]==0)
-        make_crc_table();
-
     uint32_t crc = 0xffffffffUL;
     for(size_t i=0;i<len;i++)
-        crc = crc_table[((int)crc ^ (buf[i])) & 0xff] ^ (crc >> 8);
+        crc = CrcTable[((int)crc ^ (buf[i])) & 0xff] ^ (crc >> 8);
     return crc ^ 0xffffffffUL;
 }
 
 
-static void test_inputs(Lua& L, uint32_t crc_ref, const Inputs& inputs)
+bool Test::InputCommon(uint32_t crc_ref, const Inputs& inputs)
 {
 	const char* error;
 	const char* dump;
-	error = L.PCall(_T("return DataDumper{...}"), inputs, Outputs(dump));
+	error = Lua.PCall(_T("return DataDumper{...}"), inputs, Outputs(dump));
 	if(error)
-		printf("Error: %s\n", error);
-	else
-		printf("Result: %08X %08X %s\n", crc_ref, crc32((const uint8_t*)dump, strlen(dump)), dump);
+		return Report(error, "");
+	uint32_t crc = ComputeCrc((const uint8_t*)dump, strlen(dump));
+	lua_pushfstring(Lua, "%08X <=> %08X %s", crc, crc_ref, dump);
+	return Report(crc == crc_ref, "CRC missmatch", lua_tostring(Lua, -1));
 }
 
-static void test_in_numbers(Lua& L)
+bool Test::InputNumbers()
 {
-	test_inputs(L, 0xA46633F1, Inputs(-4, (int)0xFFFFFFFF, 0xFFFFFFFF, 3.1415926535f, 3.1415926535));
+	return InputCommon(0xA46633F1, Inputs(-4, (int)0xFFFFFFFF, 0xFFFFFFFF, 3.1415926535f, 3.1415926535));
 }
 
 static void test_in_other_scalars(Lua& L)
@@ -147,7 +159,7 @@ static void test_out_other_scalars(Lua& L)
 	L.UCall(_T("return true, false, 'dummy', 'Hello', io.stdin"), 
 		Outputs(bool1, bool2, str1, Output(strsize, str2), 
 		Output(ptr, strsize)));
-	printf("%hd %ld %s %s %p\n", bool1, bool2, str1, str2, ptr);
+	printf("%hd %hd %s %s %p\n", bool1, bool2, str1, str2, ptr);
 }
 
 namespace lua {
@@ -211,7 +223,7 @@ static void test_out_strings(Lua& L)
 	//CStringA s3;
 	//CStringW s4;
 	L.UCall("a='Hello\\0World\\0' return a,a", Outputs(s1, s2));
-	printf("%d %d %d %d\n", s1.size(), s2.size());
+	printf("%d %d\n", s1.size(), s2.size());
 }
 
 static void test_out_string_lists(Lua& L)
@@ -287,8 +299,12 @@ static void test_ident_strings(Lua& L)
 	assert(_tcscmp(str1, strptr1) == 0);
 }
 
-int main(int argc, char* argv[])
+int main(int /*argc*/, char* /*argv*/[])
 {
+	Test test(true);
+	test.InputNumbers();
+	
+#if 0	
 	/*std::vector<std::string> vs;
 	vs.push_back("Hello");
 	vs.push_back("World");
@@ -317,7 +333,7 @@ int main(int argc, char* argv[])
 	test_ident_booleans(L);
 	test_ident_doubles(L);
 	test_ident_strings(L);
-
+#endif
 	return 0;
 }
 
