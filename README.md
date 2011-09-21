@@ -34,6 +34,8 @@ Features
    constructor, as a second argument
 *  It is usually possible to add support for custom types externally
 *  Code snippets can also be wide character strings
+*  Snippets strings can alternatively be external file names
+*  Support both Lua 5.1 and 5.2 API
 *  Various error handling possibilities:
    1. unprotected call
    2. protected call: the function returns the error message or `NULL`
@@ -166,8 +168,9 @@ If you don't have name clash in your project, the next step is to import
 the `lua` namespace into you code with the `using` keyword. It is best to put this
 clause not in a shared header file, but close to where it is needed.
 
-Then instantiate a `Lua` class object. This will automatically call `luaL_newstate`
-and `luaL_openlibs`. Similarly, the destructor calls `lua_close`. Since there is a 
+Then instantiate a `Lua` class object. This will automatically call `luaL_newstate`.
+If the Boolean parameter to the constructor is `true` (default), `luaL_openlibs` 
+is also called . Similarly, the destructor calls `lua_close`. Since there is a 
 conversion to `lua_State*`, that main object can be passed as the first argument to
 any Lua API function when needed.
 
@@ -183,6 +186,10 @@ as if the snippet was included inside a function definition like this
 	function fct(...) 
 		-- your script snippet goes here 
 	end
+
+Like with the environment variable `LUA_INIT`, if the code snippet begins with the `@`
+character, the remaining of the string is interpreted as a file name, and will be
+loaded using `luaL_loadfile`.
 	
 ### Input arguments
 
