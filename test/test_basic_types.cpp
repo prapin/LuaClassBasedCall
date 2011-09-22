@@ -1,4 +1,4 @@
-// Two configuration flags
+// Configuration flags: all extra features OFF
 #define LCBC_USE_MFC 0
 #define LCBC_USE_CSL 0
 #define LCBC_USE_WIDESTRING 0
