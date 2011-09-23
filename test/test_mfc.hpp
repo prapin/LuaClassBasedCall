@@ -9,7 +9,8 @@ public:
 private:
 	bool InputStrings();
 	bool InputArrays();
-	bool InputStringList();
+	bool InputStringArray();
+	bool InputLists();
 	bool InputSimpleValues();
 	bool OutputArrays();
 	bool OutputStringArrays();

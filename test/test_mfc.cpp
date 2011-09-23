@@ -15,8 +15,9 @@ using namespace std;
 bool TestMFC::All()
 {
 	InputStrings();
-	InputStringList();
+	InputStringArray();
 	InputArrays();
+	InputLists();
 	InputSimpleValues();
 	OutputArrays();
 	OutputStringArrays();
@@ -44,7 +45,18 @@ bool TestMFC::InputArrays()
 	return InputCommon("InputArrays", 0x3468A59E, Inputs(v1, v2, v3, v4, v5, v6));
 }
 
-bool TestMFC::InputStringList()
+bool TestMFC::InputLists()
+{
+	CList<int,int> v1; v1.AddTail(1); v1.AddTail(2); v1.AddTail(3);
+	CList<CString,const CString&> v2; v2.AddTail("Hello"); v2.AddTail("World");
+	CPtrList v3; v3.AddHead((void*)NULL);
+	CByteArray obj;
+	CObList v4; v4.AddHead(&obj);
+	CStringList v5; v5.AddTail("Foo"); v5.AddTail("bar"); v5.AddTail("Baz"); 
+	return InputCommon("InputLists", 0x163784A4, Inputs(v1, v2, v3, v4, v5));
+}
+
+bool TestMFC::InputStringArray()
 {
 	CArray<CStringA> v1; v1.Add("s7"); v1.Add("s8"); 
 	CStringArray v2; v2.Add(L"s9"); v2.Add(L"s10"); 

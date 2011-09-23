@@ -22,7 +22,7 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 1.2.0
+// Version 1.2.1
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
@@ -141,6 +141,10 @@ public:
 	Input(const CStringArray& value) { pPush = &Input::PushCTypedArray<CStringArray>; PointerValue = &value; }
 	Input(const CUIntArray& value) { pPush = &Input::PushCTypedArray<CUIntArray>; PointerValue = &value; }
 	Input(const CWordArray& value) { pPush = &Input::PushCTypedArray<CWordArray>; PointerValue = &value; }
+	template<class T, class A> Input(const CList<T,A>& value) { pPush = &Input::PushCList<T,A>; PointerValue = &value; }
+	Input(const CPtrList& value) { pPush = &Input::PushCTypedList<CPtrList>; PointerValue = &value; }
+	Input(const CObList& value) { pPush = &Input::PushCTypedList<CObList>; PointerValue = &value; }
+	Input(const CStringList& value) { pPush = &Input::PushCTypedList<CStringList>; PointerValue = &value; }
 #endif
 
 	void Push(lua_State* L) const { (this->*pPush)(L); }
@@ -160,6 +164,8 @@ private:
 	template<class T> void PushSet(lua_State* L) const;
 	template<class T, class A> void PushCArray(lua_State* L) const;
 	template<class T> void PushCTypedArray(lua_State* L) const;
+	template<class T, class A> void PushCList(lua_State* L) const;
+	template<class T> void PushCTypedList(lua_State* L) const;
 	template<class Key, class T> void PushMap(lua_State* L) const;
 
 	void (Input::*pPush)(lua_State* L) const;
@@ -571,6 +577,32 @@ template<class T> inline void Input::PushCTypedArray(lua_State* L) const
 	for(int i=0;i<v->GetSize();i++)
 	{
 		Input input(v->GetAt(i));
+		input.Push(L);
+		lua_rawseti(L, -2, i+1);
+	}
+}
+
+template<class T, class A> inline void Input::PushCList(lua_State* L) const
+{
+	const CList<T,A>* v = (const CList<T,A>*)PointerValue;
+	lua_createtable(L, v->GetCount(), 0);
+	POSITION pos = v->GetHeadPosition();
+	for(int i=0;pos;i++)
+	{
+		Input input(v->GetNext(pos));
+		input.Push(L);
+		lua_rawseti(L, -2, i+1);
+	}
+}
+
+template<class T> inline void Input::PushCTypedList(lua_State* L) const
+{
+	const T* v = (const T*)PointerValue;
+	lua_createtable(L, v->GetCount(), 0);
+	POSITION pos = v->GetHeadPosition();
+	for(int i=0;pos;i++)
+	{
+		Input input(v->GetNext(pos));
 		input.Push(L);
 		lua_rawseti(L, -2, i+1);
 	}
