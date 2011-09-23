@@ -47,9 +47,13 @@
 #define LCBC_USE_CSL 0
 #endif
 
-/* LCBC_USE_MFC enables a few number of Microsoft Foundation Classes (MFC)
-   objects to be directly supported. Currently, CString (both ANSI and Unicode) 
-   and CArray<T> classes are handled. More to come.
+/* LCBC_USE_MFC enables some Microsoft Foundation Classes (MFC)
+   objects to be directly handled. The supported classes are :
+   - CObject* : using (de-)serialization in a userdata
+   - CString (both ANSI and Unicode)
+   - CArray<T,A>, CByteArray, CDWordArray, CObArray, CPtrArray, CStringArray, CUIntArray, CWordArray
+   - CList<T,A>, CPtrList, CObList, CStringList
+   - CPoint, CRect, CSize, CTime, CTimeSpan
 */
 #ifndef LCBC_USE_MFC
 #define LCBC_USE_MFC 0
@@ -395,7 +399,7 @@ template<> inline void Output::GetSizedValue<wchar_t>(lua_State* L, int idx) con
 template<class T> inline void Input::PushVector(lua_State* L) const
 {
 	const vector<T>* v = (const vector<T>*)PointerValue;
-	lua_createtable(L, v->size(), 0);
+	lua_createtable(L, (int)v->size(), 0);
 	for(size_t i=0;i<v->size();i++)
 	{
 		Input input(v->at(i));
@@ -567,7 +571,7 @@ template<> inline void Output::GetValue<wstring>(lua_State* L, int idx) const
 template<class T, class A> inline void Input::PushCArray(lua_State* L) const
 {
 	const CArray<T,A>* v = (const CArray<T,A>*)PointerValue;
-	lua_createtable(L, v->GetSize(), 0);
+	lua_createtable(L, (int)v->GetSize(), 0);
 	for(int i=0;i<v->GetSize();i++)
 	{
 		Input input(v->GetAt(i));
@@ -579,7 +583,7 @@ template<class T, class A> inline void Input::PushCArray(lua_State* L) const
 template<class T> inline void Input::PushCTypedArray(lua_State* L) const
 {
 	const T* v = (const T*)PointerValue;
-	lua_createtable(L, v->GetSize(), 0);
+	lua_createtable(L, (int)v->GetSize(), 0);
 	for(int i=0;i<v->GetSize();i++)
 	{
 		Input input(v->GetAt(i));
@@ -591,7 +595,7 @@ template<class T> inline void Input::PushCTypedArray(lua_State* L) const
 template<class T, class A> inline void Input::PushCList(lua_State* L) const
 {
 	const CList<T,A>* v = (const CList<T,A>*)PointerValue;
-	lua_createtable(L, v->GetCount(), 0);
+	lua_createtable(L, (int)v->GetCount(), 0);
 	POSITION pos = v->GetHeadPosition();
 	for(int i=0;pos;i++)
 	{
@@ -604,7 +608,7 @@ template<class T, class A> inline void Input::PushCList(lua_State* L) const
 template<class T> inline void Input::PushCTypedList(lua_State* L) const
 {
 	const T* v = (const T*)PointerValue;
-	lua_createtable(L, v->GetCount(), 0);
+	lua_createtable(L, (int)v->GetCount(), 0);
 	POSITION pos = v->GetHeadPosition();
 	for(int i=0;pos;i++)
 	{
@@ -807,7 +811,7 @@ template<> inline void Output::GetValue<CObject*>(lua_State* L, int idx) const
 	size_t len = lua_objlen(L, idx);
 	try 
 	{
-		CMemFile file((BYTE*)buffer, len);
+		CMemFile file((BYTE*)buffer, (UINT)len);
 		CArchive ar(&file, CArchive::load);
 		CObject* obj;
 		ar >> obj;
@@ -826,9 +830,9 @@ template<> inline void Output::GetValue<CPoint>(lua_State* L, int idx) const
 	int top = lua_gettop(L);
 	CPoint* p = (CPoint*)PointerValue;
 	lua_getfield(L, idx, "x");
-	p->x = luaL_checkinteger(L, -1);
+	p->x = luaL_checkint(L, -1);
 	lua_getfield(L, idx, "y");
-	p->y = luaL_checkinteger(L, -1);
+	p->y = luaL_checkint(L, -1);
 	lua_settop(L, top);
 }
 
@@ -838,13 +842,13 @@ template<> inline void Output::GetValue<CRect>(lua_State* L, int idx) const
 	int top = lua_gettop(L);
 	CRect* p = (CRect*)PointerValue;
 	lua_getfield(L, idx, "top");
-	p->top = luaL_checkinteger(L, -1);
+	p->top = luaL_checkint(L, -1);
 	lua_getfield(L, idx, "bottom");
-	p->bottom = luaL_checkinteger(L, -1);
+	p->bottom = luaL_checkint(L, -1);
 	lua_getfield(L, idx, "left");
-	p->left = luaL_checkinteger(L, -1);
+	p->left = luaL_checkint(L, -1);
 	lua_getfield(L, idx, "right");
-	p->right = luaL_checkinteger(L, -1);
+	p->right = luaL_checkint(L, -1);
 	lua_settop(L, top);
 }
 
@@ -854,9 +858,9 @@ template<> inline void Output::GetValue<CSize>(lua_State* L, int idx) const
 	int top = lua_gettop(L);
 	CSize* p = (CSize*)PointerValue;
 	lua_getfield(L, idx, "cx");
-	p->cx = luaL_checkinteger(L, -1);
+	p->cx = luaL_checkint(L, -1);
 	lua_getfield(L, idx, "cy");
-	p->cy = luaL_checkinteger(L, -1);
+	p->cy = luaL_checkint(L, -1);
 	lua_settop(L, top);
 }
 

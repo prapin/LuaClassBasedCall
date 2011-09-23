@@ -28,7 +28,7 @@ bool TestBasicTypes::All()
 
 bool TestBasicTypes::InputNumbers()
 {
-	const int val = -12345678;
+	int val = -12345678;
 	return InputCommon("InputNumbers", 0xC781FACC, Inputs((int8_t)val, (uint8_t)val, (int16_t)val, (uint16_t)val, 
 		(int32_t)val, (uint32_t)val, (int64_t)val, (uint64_t)(-val)*1000, 12.125f, 12.125));
 }
