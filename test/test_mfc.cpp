@@ -17,8 +17,10 @@ bool TestMFC::All()
 	InputStrings();
 	InputStringList();
 	InputArrays();
+	InputSimpleValues();
 	OutputArrays();
 	OutputStringArrays();
+	Serialization();
 	return FailedCnt == 0;
 }
 
@@ -46,6 +48,16 @@ bool TestMFC::InputStringList()
 	CArray<CStringA> v1; v1.Add("s7"); v1.Add("s8"); 
 	CStringArray v2; v2.Add(L"s9"); v2.Add(L"s10"); 
 	return InputCommon("InputStringList", 0x47a2b000, Inputs(v1, v2));
+}
+
+bool TestMFC::InputSimpleValues()
+{
+	CPoint v1(1,2);
+	CRect v2(3,4,5,6);
+	CSize v3(7,8);
+	CTime v4(9);
+	CTimeSpan v5(10);
+	return InputCommon("InputSimpleValues", 0xF4EB9FC9, Inputs(v1, v2, v3, v4, v5));
 }
 
 bool TestMFC::OutputArrays()
@@ -83,6 +95,16 @@ bool TestMFC::OutputStringArrays()
 			str3.GetSize(), str3[0], str3[1], str3[2], str3[3],
 			str4.GetSize(), str4[0], str4[1],
 			str5.GetSize(), str5[0][0], str5[1][0]);
+}
+
+bool TestMFC::Serialization()
+{
+	CStringArray v1; v1.Add("s7"); v1.Add("s8"); 
+	CObject *i1=&v1, *o1;
+	PSTRING error = Lua.PCall("return ...", Inputs(i1), Outputs(o1));
+	bool res = Report(error == NULL && o1->IsKindOf(i1->GetRuntimeClass()), "Serialization", error);
+	delete o1;
+	return res;
 }
 
 int main(int /*argc*/, char* /*argv*/[])

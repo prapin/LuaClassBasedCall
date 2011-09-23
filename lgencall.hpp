@@ -128,6 +128,11 @@ public:
 #if LCBC_USE_MFC
 	Input(const CStringA& value);
 	Input(const CStringW& value);
+	Input(const CPoint& value);
+	Input(const CRect& value);
+	Input(const CSize& value);
+	Input(const CTime& value);
+	Input(const CTimeSpan& value);
 	template<class T, class A> Input(const CArray<T,A>& value) { pPush = &Input::PushCArray<T,A>; PointerValue = &value; }
 	Input(const CByteArray& value) { pPush = &Input::PushCTypedArray<CByteArray>; PointerValue = &value; }
 	Input(const CDWordArray& value) { pPush = &Input::PushCTypedArray<CDWordArray>; PointerValue = &value; }
@@ -619,6 +624,82 @@ inline Input::Input(const CStringA& value)
 	PointerValue = &value; 
 }
 
+template<> inline void Input::PushValue<CPoint>(lua_State* L) const
+{
+	const CPoint* p = (const CPoint*)PointerValue;
+	lua_createtable(L, 0, 2);
+	lua_pushinteger(L, p->x);
+	lua_setfield(L, -2, "x");
+	lua_pushinteger(L, p->y);
+	lua_setfield(L, -2, "y");
+}
+
+inline Input::Input(const CPoint& value) 
+{ 
+	pPush = &Input::PushValue<CPoint>; 
+	PointerValue = &value; 
+}
+
+template<> inline void Input::PushValue<CRect>(lua_State* L) const
+{
+	const CRect* r = (const CRect*)PointerValue;
+	lua_createtable(L, 0, 2);
+	lua_pushinteger(L, r->top);
+	lua_setfield(L, -2, "top");
+	lua_pushinteger(L, r->bottom);
+	lua_setfield(L, -2, "bottom");
+	lua_pushinteger(L, r->left);
+	lua_setfield(L, -2, "left");
+	lua_pushinteger(L, r->right);
+	lua_setfield(L, -2, "right");
+}
+
+inline Input::Input(const CRect& value) 
+{ 
+	pPush = &Input::PushValue<CRect>; 
+	PointerValue = &value; 
+}
+
+template<> inline void Input::PushValue<CSize>(lua_State* L) const
+{
+	const CSize* s = (const CSize*)PointerValue;
+	lua_createtable(L, 0, 2);
+	lua_pushinteger(L, s->cx);
+	lua_setfield(L, -2, "cx");
+	lua_pushinteger(L, s->cy);
+	lua_setfield(L, -2, "cy");
+}
+
+inline Input::Input(const CSize& value) 
+{ 
+	pPush = &Input::PushValue<CSize>; 
+	PointerValue = &value; 
+}
+
+template<> inline void Input::PushValue<CTime>(lua_State* L) const
+{
+	const CTime* t = (const CTime*)PointerValue;
+	lua_pushnumber(L, (lua_Number)t->GetTime());
+}
+
+inline Input::Input(const CTime& value) 
+{ 
+	pPush = &Input::PushValue<CTime>; 
+	PointerValue = &value; 
+}
+
+template<> inline void Input::PushValue<CTimeSpan>(lua_State* L) const
+{
+	const CTimeSpan* t = (const CTimeSpan*)PointerValue;
+	lua_pushnumber(L, (lua_Number)t->GetTimeSpan());
+}
+
+inline Input::Input(const CTimeSpan& value) 
+{ 
+	pPush = &Input::PushValue<CTimeSpan>; 
+	PointerValue = &value; 
+}
+
 template<> inline void Input::PushValue<CObject>(lua_State* L) const
 {
 	try 
@@ -634,7 +715,7 @@ template<> inline void Input::PushValue<CObject>(lua_State* L) const
 		memcpy(pdst, buffer, len);
 		delete [] buffer;
 	}
-	catch(CException&)
+	catch(CException* )
 	{
 		luaL_error(L, "Cannot serialize MFC object");
 	}

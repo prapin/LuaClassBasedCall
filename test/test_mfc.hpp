@@ -10,6 +10,8 @@ private:
 	bool InputStrings();
 	bool InputArrays();
 	bool InputStringList();
+	bool InputSimpleValues();
 	bool OutputArrays();
 	bool OutputStringArrays();
+	bool Serialization();
 };
