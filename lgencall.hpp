@@ -22,7 +22,7 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 1.2.1
+// Version 1.2.2
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
@@ -202,6 +202,10 @@ public:
 	Output(CStringArray& value) { pGet = &Output::GetCTypedArray<CStringArray, CString>; PointerValue = &value; }
 	Output(CUIntArray& value) { pGet = &Output::GetCTypedArray<CUIntArray, UINT>; PointerValue = &value; }
 	Output(CWordArray& value) { pGet = &Output::GetCTypedArray<CWordArray, WORD>; PointerValue = &value; }
+	template<class T, class A> Output(CList<T,A>& value) { pGet = &Output::GetCList<T,A>; PointerValue = &value; }
+	Output(CPtrList& value) { pGet = &Output::GetCTypedList<CPtrList, void*>; PointerValue = &value; }
+	Output(CObList& value) { pGet = &Output::GetCTypedList<CObList, CObject*>; PointerValue = &value; }
+	Output(CStringList& value) { pGet = &Output::GetCTypedList<CStringList, CString>; PointerValue = &value; }
 #endif
 
 	void Get(lua_State* L, int idx) const  { (this->*pGet)(L, idx); }
@@ -219,6 +223,8 @@ private:
 	template<class T> void GetSet(lua_State* L, int idx) const;
 	template<class T, class A> void GetCArray(lua_State* L, int idx) const;
 	template<class C, class T> void GetCTypedArray(lua_State* L, int idx) const;
+	template<class T, class A> void GetCList(lua_State* L, int idx) const;
+	template<class C, class T> void GetCTypedList(lua_State* L, int idx) const;
 
 	void (Output::*pGet)(lua_State* L, int idx) const;
 	void* PointerValue;
@@ -640,6 +646,40 @@ template<class C, class T> inline void Output::GetCTypedArray(lua_State* L, int 
 		Output output(value);
 		output.Get(L, top+1);
 		v->SetAt(i, value);
+		lua_settop(L, top);
+	}
+}
+
+template<class T, class A> inline void Output::GetCList(lua_State* L, int idx) const
+{
+	CList<T,A>* v = (CList<T,A>*)PointerValue;
+	luaL_checktype(L, idx, LUA_TTABLE);
+	int len = (int)lua_objlen(L, idx);
+	int top = lua_gettop(L);
+	for(int i=0;i<len;i++)
+	{
+		lua_rawgeti(L, idx, i+1);
+		T value;
+		Output output(value);
+		output.Get(L, top+1);
+		v->AddTail(value);
+		lua_settop(L, top);
+	}
+}
+
+template<class C, class T> inline void Output::GetCTypedList(lua_State* L, int idx) const
+{
+	C* v = (C*)PointerValue;
+	luaL_checktype(L, idx, LUA_TTABLE);
+	int len = (int)lua_objlen(L, idx);
+	int top = lua_gettop(L);
+	for(int i=0;i<len;i++)
+	{
+		lua_rawgeti(L, idx, i+1);
+		T value;
+		Output output(value);
+		output.Get(L, top+1);
+		v->AddTail(value);
 		lua_settop(L, top);
 	}
 }

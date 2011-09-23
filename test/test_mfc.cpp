@@ -21,6 +21,7 @@ bool TestMFC::All()
 	InputSimpleValues();
 	OutputArrays();
 	OutputStringArrays();
+	OutputLists();
 	OutputSimpleValues();
 	Serialization();
 	return FailedCnt == 0;
@@ -90,7 +91,6 @@ bool TestMFC::OutputArrays()
 			v4.GetSize(), v4[0], 
 			v5.GetSize(), v5[0], v5[1],
 			v6.GetSize());
-	return true;
 }
 
 bool TestMFC::OutputStringArrays()
@@ -108,6 +108,21 @@ bool TestMFC::OutputStringArrays()
 			str3.GetSize(), str3[0], str3[1], str3[2], str3[3],
 			str4.GetSize(), str4[0], str4[1],
 			str5.GetSize(), str5[0][0], str5[1][0]);
+}
+
+bool TestMFC::OutputLists()
+{
+	CList<BYTE,BYTE> v1;
+	CPtrList v2;
+	CObList v3;
+	CStringList v4;
+	return OutputCommonStart("OutputLists", "return {1,2,3,4},{io.stdin},{},{'Hello'}", 
+			Outputs(v1, v2, v3, v4)) &&
+		OutputCommonEnd(0xE4EA5C26, "%d:{%d,...},%d:{%d},%d:{},%d:{%S}", 
+			v1.GetCount(), v1.GetHead(), 
+			v2.GetCount(), v2.GetHead() != NULL,
+			v3.GetCount(),  
+			v4.GetCount(), v4.GetHead());
 }
 
 bool TestMFC::OutputSimpleValues()
