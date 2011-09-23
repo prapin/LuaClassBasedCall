@@ -38,7 +38,7 @@ bool TestMFC::InputArrays()
 	CWordArray v5; v5.Add(8);
 	CObArray v6; v6.Add(&v1);
 
-	return InputCommon("InputArrays", 0x47a2b000, Inputs(v1, v2, v3, v4, v5, v6));
+	return InputCommon("InputArrays", 0x3468A59E, Inputs(v1, v2, v3, v4, v5, v6));
 }
 
 bool TestMFC::InputStringList()
@@ -50,29 +50,39 @@ bool TestMFC::InputStringList()
 
 bool TestMFC::OutputArrays()
 {
-	/*vector<short> v1;
-	vector<char> str; 
-	return OutputCommonStart("OutputArrays", "return {1,2,3,4},{72,101,108,108,111,0}", 
-			Outputs(v1, str)) &&
-		OutputCommonEnd(0x56dfd160, "%d:{%d,%d,%d,%d},%d:'%c%c%c%c%c'\n", 
-			v1.size(), v1[0], v1[1],v1[2], v1[3], str.size(), str[0], str[1], str[2], str[3], str[4]);*/
+	CByteArray v1;
+	CDWordArray v2;
+	CPtrArray v3;
+	CUIntArray v4;
+	CWordArray v5;
+	CObArray v6;
+	return OutputCommonStart("OutputArrays", "return {1,2,3,4},{5,6},{io.stdin},{10},{11,12},{}", 
+			Outputs(v1, v2, v3, v4, v5, v6)) &&
+			OutputCommonEnd(0xE4EA5C26, "%d:{%d,%d,%d,%d},%d:{%d,%d},%d:{%d},%d:{%d},%d:{%d,%d},%d:{}", 
+			v1.GetSize(), v1[0], v1[1],v1[2], v1[3], 
+			v2.GetSize(), v2[0], v2[1], 
+			v3.GetSize(), v3[0] != NULL,
+			v4.GetSize(), v4[0], 
+			v5.GetSize(), v5[0], v5[1],
+			v6.GetSize());
 	return true;
 }
 
 bool TestMFC::OutputStringArrays()
 {
-	/*vector<const char*> str1;
-	vector<const wchar_t*> str2;
-	vector<string> str3;
-	vector<wstring> str4;
-	return OutputCommonStart("OutputStringArrays", "return {1,2,3},{44,55,66},{10,9,8,7},{6,5}",
-			Outputs(str1, str2, str3, str4)) &&
-		OutputCommonEnd(0xdcde586, "%d:{%s,%s,%s},%d:{%S,%S,%S},%d:{%s,%s,%s,%s},%d:{%S,%S}", 
-			str1.size(), str1[0], str1[1], str1[2],
-			str2.size(), str2[0], str2[1], str2[2],
-			str3.size(), str3[0].c_str(), str3[1].c_str(), str3[2].c_str(), str3[3].c_str(),
-			str4.size(), str4[0].c_str(), str4[1].c_str());*/
-	return true;
+	CArray<const char*> str1;
+	CArray<const wchar_t*> str2;
+	CArray<CStringA> str3;
+	CArray<CStringW> str4;
+	CStringArray str5;
+	return OutputCommonStart("OutputStringArrays", "return {1,2,3},{44,55,66},{10,9,8,7},{6,5},{4,3}",
+			Outputs(str1, str2, str3, str4, str5)) &&
+		OutputCommonEnd(0xDA0F9DEB, "%d:{%s,%s,%s},%d:{%S,%S,%S},%d:{%s,%s,%s,%s},%d:{%S,%S},%d:{%c,%c}",
+			str1.GetSize(), str1[0], str1[1], str1[2],
+			str2.GetSize(), str2[0], str2[1], str2[2],
+			str3.GetSize(), str3[0], str3[1], str3[2], str3[3],
+			str4.GetSize(), str4[0], str4[1],
+			str5.GetSize(), str5[0][0], str5[1][0]);
 }
 
 int main(int /*argc*/, char* /*argv*/[])

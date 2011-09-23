@@ -126,7 +126,6 @@ public:
 	template<class T> Input(const set<T>& value) { pPush = &Input::PushSet<T>; PointerValue = &value; }
 #endif
 #if LCBC_USE_MFC
-	Input(const CObject& value);
 	Input(const CStringA& value);
 	Input(const CStringW& value);
 	template<class T, class A> Input(const CArray<T,A>& value) { pPush = &Input::PushCArray<T,A>; PointerValue = &value; }
@@ -185,6 +184,13 @@ public:
 #endif
 #if LCBC_USE_MFC
 	template<class T, class A> Output(CArray<T,A>& value) { pGet = &Output::GetCArray<T,A>; PointerValue = &value; }
+	Output(CByteArray& value) { pGet = &Output::GetCTypedArray<CByteArray, BYTE>; PointerValue = &value; }
+	Output(CDWordArray& value) { pGet = &Output::GetCTypedArray<CDWordArray, DWORD>; PointerValue = &value; }
+	Output(CObArray& value) { pGet = &Output::GetCTypedArray<CObArray, CObject*>; PointerValue = &value; }
+	Output(CPtrArray& value) { pGet = &Output::GetCTypedArray<CPtrArray, void*>; PointerValue = &value; }
+	Output(CStringArray& value) { pGet = &Output::GetCTypedArray<CStringArray, CString>; PointerValue = &value; }
+	Output(CUIntArray& value) { pGet = &Output::GetCTypedArray<CUIntArray, UINT>; PointerValue = &value; }
+	Output(CWordArray& value) { pGet = &Output::GetCTypedArray<CWordArray, WORD>; PointerValue = &value; }
 #endif
 
 	void Get(lua_State* L, int idx) const  { (this->*pGet)(L, idx); }
@@ -201,6 +207,7 @@ private:
 	template<class T> void GetList(lua_State* L, int idx) const;
 	template<class T> void GetSet(lua_State* L, int idx) const;
 	template<class T, class A> void GetCArray(lua_State* L, int idx) const;
+	template<class C, class T> void GetCTypedArray(lua_State* L, int idx) const;
 
 	void (Output::*pGet)(lua_State* L, int idx) const;
 	void* PointerValue;
@@ -290,9 +297,9 @@ template<> inline void Output::GetValue<lua_State*>(lua_State* L, int idx) const
 	*(lua_State**)PointerValue = lua_tothread(L, idx);
 }
 
-template<> inline void Output::GetValue<const void*>(lua_State* L, int idx) const
+template<> inline void Output::GetValue<void*>(lua_State* L, int idx) const
 {
-	*(const void**)PointerValue = lua_touserdata(L, idx);
+	*(void**)PointerValue = lua_touserdata(L, idx);
 }
 
 template<> inline void Output::GetSizedValue<void>(lua_State* L, int idx) const
@@ -582,6 +589,24 @@ template<class T, class A> inline void Output::GetCArray(lua_State* L, int idx) 
 	}
 }
 
+template<class C, class T> inline void Output::GetCTypedArray(lua_State* L, int idx) const
+{
+	C* v = (C*)PointerValue;
+	luaL_checktype(L, idx, LUA_TTABLE);
+	int len = (int)lua_objlen(L, idx);
+	int top = lua_gettop(L);
+	v->SetSize(len);
+	for(int i=0;i<len;i++)
+	{
+		lua_rawgeti(L, idx, i+1);
+		T value;
+		Output output(value);
+		output.Get(L, top+1);
+		v->SetAt(i, value);
+		lua_settop(L, top);
+	}
+}
+
 template<> inline void Input::PushValue<CStringA>(lua_State* L) const
 {
 	const CStringA* str = (const CStringA*)PointerValue;
@@ -615,18 +640,33 @@ template<> inline void Input::PushValue<CObject>(lua_State* L) const
 	}
 }
 
-inline Input::Input(const CObject& value) 
-{ 
-	pPush = &Input::PushValue<CObject>; 
-	PointerValue = &value; 
-}
-
 template<> inline void Output::GetValue<CStringA>(lua_State* L, int idx) const
 {
 	size_t size; 
 	const char* str = luaL_checklstring(L, idx, &size); 
 	*(CStringA*)PointerValue = CStringA(str, (int)size);
 }
+
+template<> inline void Output::GetValue<CObject*>(lua_State* L, int idx) const
+{
+	luaL_checktype(L, idx, LUA_TUSERDATA);
+	void* buffer = lua_touserdata(L, idx);
+	size_t len = lua_objlen(L, idx);
+	try 
+	{
+		CMemFile file((BYTE*)buffer, len);
+		CArchive ar(&file, CArchive::load);
+		CObject* obj;
+		ar >> obj;
+		ar.Flush();
+		*(CObject**)PointerValue = obj;
+	}
+	catch(CException&)
+	{
+		luaL_error(L, "Cannot deserialize MFC object");
+	}
+}
+
 
 #if LCBC_USE_WIDESTRING
 template<> inline void Input::PushValue<CStringW>(lua_State* L) const
