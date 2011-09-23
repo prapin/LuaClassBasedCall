@@ -126,9 +126,17 @@ public:
 	template<class T> Input(const set<T>& value) { pPush = &Input::PushSet<T>; PointerValue = &value; }
 #endif
 #if LCBC_USE_MFC
+	Input(const CObject& value);
 	Input(const CStringA& value);
 	Input(const CStringW& value);
 	template<class T, class A> Input(const CArray<T,A>& value) { pPush = &Input::PushCArray<T,A>; PointerValue = &value; }
+	Input(const CByteArray& value) { pPush = &Input::PushCTypedArray<CByteArray>; PointerValue = &value; }
+	Input(const CDWordArray& value) { pPush = &Input::PushCTypedArray<CDWordArray>; PointerValue = &value; }
+	Input(const CObArray& value) { pPush = &Input::PushCTypedArray<CObArray>; PointerValue = &value; }
+	Input(const CPtrArray& value) { pPush = &Input::PushCTypedArray<CPtrArray>; PointerValue = &value; }
+	Input(const CStringArray& value) { pPush = &Input::PushCTypedArray<CStringArray>; PointerValue = &value; }
+	Input(const CUIntArray& value) { pPush = &Input::PushCTypedArray<CUIntArray>; PointerValue = &value; }
+	Input(const CWordArray& value) { pPush = &Input::PushCTypedArray<CWordArray>; PointerValue = &value; }
 #endif
 
 	void Push(lua_State* L) const { (this->*pPush)(L); }
@@ -147,6 +155,7 @@ private:
 	template<class T> void PushList(lua_State* L) const;
 	template<class T> void PushSet(lua_State* L) const;
 	template<class T, class A> void PushCArray(lua_State* L) const;
+	template<class T> void PushCTypedArray(lua_State* L) const;
 	template<class Key, class T> void PushMap(lua_State* L) const;
 
 	void (Input::*pPush)(lua_State* L) const;
@@ -543,6 +552,18 @@ template<class T, class A> inline void Input::PushCArray(lua_State* L) const
 	}
 }
 
+template<class T> inline void Input::PushCTypedArray(lua_State* L) const
+{
+	const T* v = (const T*)PointerValue;
+	lua_createtable(L, v->GetSize(), 0);
+	for(int i=0;i<v->GetSize();i++)
+	{
+		Input input(v->GetAt(i));
+		input.Push(L);
+		lua_rawseti(L, -2, i+1);
+	}
+}
+
 template<class T, class A> inline void Output::GetCArray(lua_State* L, int idx) const
 {
 	CArray<T,A>* v = (CArray<T,A>*)PointerValue;
@@ -563,13 +584,40 @@ template<class T, class A> inline void Output::GetCArray(lua_State* L, int idx) 
 
 template<> inline void Input::PushValue<CStringA>(lua_State* L) const
 {
-	CStringA* str = (CStringA*)PointerValue;
+	const CStringA* str = (const CStringA*)PointerValue;
 	lua_pushlstring(L, *str, str->GetLength());
 }
 
 inline Input::Input(const CStringA& value) 
 { 
 	pPush = &Input::PushValue<CStringA>; 
+	PointerValue = &value; 
+}
+
+template<> inline void Input::PushValue<CObject>(lua_State* L) const
+{
+	try 
+	{
+		CMemFile file;
+		CArchive ar(&file, CArchive::store);
+		const CObject* obj = (const CObject*)PointerValue;
+		ar << obj;
+		ar.Flush();
+		size_t len = (size_t)file.GetLength();
+		BYTE* buffer = file.Detach();
+		void* pdst = lua_newuserdata(L, len);
+		memcpy(pdst, buffer, len);
+		delete [] buffer;
+	}
+	catch(CException&)
+	{
+		luaL_error(L, "Cannot serialize MFC object");
+	}
+}
+
+inline Input::Input(const CObject& value) 
+{ 
+	pPush = &Input::PushValue<CObject>; 
 	PointerValue = &value; 
 }
 
