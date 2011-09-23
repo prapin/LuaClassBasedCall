@@ -22,7 +22,7 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 1.1.1
+// Version 1.2.0
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
@@ -748,6 +748,57 @@ template<> inline void Output::GetValue<CObject*>(lua_State* L, int idx) const
 	}
 }
 
+template<> inline void Output::GetValue<CPoint>(lua_State* L, int idx) const
+{
+	luaL_checktype(L, idx, LUA_TTABLE);
+	int top = lua_gettop(L);
+	CPoint* p = (CPoint*)PointerValue;
+	lua_getfield(L, idx, "x");
+	p->x = luaL_checkinteger(L, -1);
+	lua_getfield(L, idx, "y");
+	p->y = luaL_checkinteger(L, -1);
+	lua_settop(L, top);
+}
+
+template<> inline void Output::GetValue<CRect>(lua_State* L, int idx) const
+{
+	luaL_checktype(L, idx, LUA_TTABLE);
+	int top = lua_gettop(L);
+	CRect* p = (CRect*)PointerValue;
+	lua_getfield(L, idx, "top");
+	p->top = luaL_checkinteger(L, -1);
+	lua_getfield(L, idx, "bottom");
+	p->bottom = luaL_checkinteger(L, -1);
+	lua_getfield(L, idx, "left");
+	p->left = luaL_checkinteger(L, -1);
+	lua_getfield(L, idx, "right");
+	p->right = luaL_checkinteger(L, -1);
+	lua_settop(L, top);
+}
+
+template<> inline void Output::GetValue<CSize>(lua_State* L, int idx) const
+{
+	luaL_checktype(L, idx, LUA_TTABLE);
+	int top = lua_gettop(L);
+	CSize* p = (CSize*)PointerValue;
+	lua_getfield(L, idx, "cx");
+	p->cx = luaL_checkinteger(L, -1);
+	lua_getfield(L, idx, "cy");
+	p->cy = luaL_checkinteger(L, -1);
+	lua_settop(L, top);
+}
+
+template<> inline void Output::GetValue<CTime>(lua_State* L, int idx) const
+{
+	CTime* t = (CTime*)PointerValue;
+	*t = (time_t)luaL_checknumber(L, idx);
+}
+
+template<> inline void Output::GetValue<CTimeSpan>(lua_State* L, int idx) const
+{
+	CTimeSpan* t = (CTimeSpan*)PointerValue;
+	*t = (time_t)luaL_checknumber(L, idx);
+}
 
 #if LCBC_USE_WIDESTRING
 template<> inline void Input::PushValue<CStringW>(lua_State* L) const

@@ -13,5 +13,6 @@ private:
 	bool InputSimpleValues();
 	bool OutputArrays();
 	bool OutputStringArrays();
+	bool OutputSimpleValues();
 	bool Serialization();
 };

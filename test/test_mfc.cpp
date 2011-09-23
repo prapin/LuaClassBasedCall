@@ -20,6 +20,7 @@ bool TestMFC::All()
 	InputSimpleValues();
 	OutputArrays();
 	OutputStringArrays();
+	OutputSimpleValues();
 	Serialization();
 	return FailedCnt == 0;
 }
@@ -95,6 +96,23 @@ bool TestMFC::OutputStringArrays()
 			str3.GetSize(), str3[0], str3[1], str3[2], str3[3],
 			str4.GetSize(), str4[0], str4[1],
 			str5.GetSize(), str5[0][0], str5[1][0]);
+}
+
+bool TestMFC::OutputSimpleValues()
+{
+	CPoint v1;
+	CRect v2;
+	CSize v3;
+	CTime v4;
+	CTimeSpan v5;
+	return OutputCommonStart("OutputSimpleValues", "return {x=1,y=2},{left=3,right=4,top=5,bottom=6},{cx=7,cy=8},9,10",
+			Outputs(v1, v2, v3, v4, v5)) &&
+		OutputCommonEnd(0xD110F687, "{x=%d,y=%d},{left=%d,right=%d,top=%d,bottom=%d},{cx=%d,cy=%d},%d,%d",
+			v1.x, v1.y, 
+			v2.left, v2.right, v2.top, v2.bottom,
+			v3.cx, v3.cy,
+			(int)v4.GetTime(), (int)v5.GetTimeSpan());
+
 }
 
 bool TestMFC::Serialization()
