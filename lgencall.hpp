@@ -22,7 +22,7 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 1.2.6
+// Version 1.2.7
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
@@ -51,8 +51,11 @@
    objects to be directly handled. The supported classes are :
    - CObject* : using (de-)serialization in a userdata
    - CString (both ANSI and Unicode)
-   - CArray<T,A>, CByteArray, CDWordArray, CObArray, CPtrArray, CStringArray, CUIntArray, CWordArray
-   - CList<T,A>, CPtrList, CObList, CStringList
+   - CArray<T,A>, CTypedPtrArray<B,T>, CByteArray, CDWordArray, CObArray, 
+     CPtrArray, CStringArray, CUIntArray, CWordArray
+   - CList<T,A>, CTypedPtrList<B,T>, CPtrList, CObList, CStringList
+   - CMap<K,AK,V,AV>, CTypedPtrMap<B,K,V>, CMapWordToPtr, CMapPtrToWord, 
+     CMapPtrToPtr, CMapWordToOb, CMapStringToPtr, CMapStringToOb, CMapStringToString
    - CPoint, CRect, CSize, CTime, CTimeSpan
 */
 #ifndef LCBC_USE_MFC

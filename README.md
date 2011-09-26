@@ -65,10 +65,15 @@ Features
    * `map<K,T>`
    * `list<T>`
    * `set<T>`
-*  Some MFC (Microsoft Foundation Classes) elements (more to come):
-   * `CStringA`
-   * `CStringW`
-   * `CArray<T1,T2>`
+*  MFC (Microsoft Foundation Classes) elements:
+   * `CObject*` : using (de-)serialization in a userdata
+   * `CStringA`, `CStringW`
+   * `CArray<T,A>`, `CTypedPtrArray<B,T>`, `CByteArray`, `CDWordArray`, 
+     `CObArray`, `CPtrArray`, `CStringArray`, `CUIntArray`, `CWordArray`
+   * `CList<T,A>`, `CTypedPtrList<B,T>`, `CPtrList`, `CObList`, `CStringList`
+   * `CMap<K,AK,V,AV>`, `CTypedPtrMap<B,K,V>`, `CMapWordToPtr`, `CMapPtrToWord`, 
+     `CMapPtrToPtr`, `CMapWordToOb`, `CMapStringToPtr`, `CMapStringToOb`, `CMapStringToString`
+   * `CPoint`, `CRect`, `CSize`, `CTime`, `CTimeSpan`
 
 
 Implementation
