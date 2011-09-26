@@ -23,6 +23,7 @@ bool TestMFC::All()
 	OutputArrays();
 	OutputStringArrays();
 	OutputLists();
+	OutputMaps();
 	OutputSimpleValues();
 	Serialization();
 	return FailedCnt == 0;
@@ -139,6 +140,23 @@ bool TestMFC::OutputLists()
 			v2.GetCount(), v2.GetHead() != NULL,
 			v3.GetCount(),  
 			v4.GetCount(), v4.GetHead());
+}
+
+bool TestMFC::OutputMaps()
+{
+	CMap<int,int,PSTRING,PSTRING> v1;
+	CMapWordToPtr v2;
+	CMapPtrToWord v3;
+	CMapPtrToPtr v4;
+	CMapWordToOb v5;
+	CMapStringToPtr v6;
+	CMapStringToOb v7;
+	CMapStringToString v8;
+	return OutputCommonStart("OutputMaps", "p=io.stdin; return {1,2},{p},{[p]=5},{[p]=p},{},{hello=p},{},{foo='baz'}", 
+			Outputs(v1, v2, v3, v4, v5, v6, v7, v8)) &&
+		OutputCommonEnd(0x5A8DE320, "%d,%d,%d,%d,%d,%d,%d,%d", 
+			v1.GetCount(), v2.GetCount(), v3.GetCount(), v4.GetCount(),
+			v5.GetCount(), v6.GetCount(), v7.GetCount(), v8.GetCount());
 }
 
 bool TestMFC::OutputSimpleValues()

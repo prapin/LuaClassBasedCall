@@ -16,6 +16,7 @@ private:
 	bool OutputArrays();
 	bool OutputStringArrays();
 	bool OutputLists();
+	bool OutputMaps();
 	bool OutputSimpleValues();
 	bool Serialization();
 };

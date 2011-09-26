@@ -22,7 +22,7 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 1.2.3
+// Version 1.2.4
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
@@ -217,6 +217,14 @@ public:
 	Output(CPtrList& value) { pGet = &Output::GetCList<CPtrList, void*>; PointerValue = &value; }
 	Output(CObList& value) { pGet = &Output::GetCList<CObList, CObject*>; PointerValue = &value; }
 	Output(CStringList& value) { pGet = &Output::GetCList<CStringList, CString>; PointerValue = &value; }
+	template<class K, class AK, class V, class AV> Output(CMap<K,AK,V,AV>& value) { pGet = &Output::GetCMap<CMap<K,AK,V,AV>,K,V>; PointerValue = &value; }
+	Output(CMapWordToPtr& value) { pGet = &Output::GetCMap<CMapWordToPtr, WORD, void*>; PointerValue = &value; }
+	Output(CMapPtrToWord& value) { pGet = &Output::GetCMap<CMapPtrToWord, void*, WORD>; PointerValue = &value; }
+	Output(CMapPtrToPtr& value) { pGet = &Output::GetCMap<CMapPtrToPtr, void*, void*>; PointerValue = &value; }
+	Output(CMapWordToOb& value) { pGet = &Output::GetCMap<CMapWordToOb, WORD, CObject*>; PointerValue = &value; }
+	Output(CMapStringToPtr& value) { pGet = &Output::GetCMap<CMapStringToPtr, CString, void*>; PointerValue = &value; }
+	Output(CMapStringToOb& value) { pGet = &Output::GetCMap<CMapStringToOb, CString, CObject*>; PointerValue = &value; }
+	Output(CMapStringToString& value) { pGet = &Output::GetCMap<CMapStringToString, CString, CString>; PointerValue = &value; }
 #endif
 
 	void Get(lua_State* L, int idx) const  { (this->*pGet)(L, idx); }
@@ -234,6 +242,7 @@ private:
 	template<class T> void GetSet(lua_State* L, int idx) const;
 	template<class C, class T> void GetCArray(lua_State* L, int idx) const;
 	template<class C, class T> void GetCList(lua_State* L, int idx) const;
+	template<class T, class K, class V> void GetCMap(lua_State* L, int idx) const;
 
 	void (Output::*pGet)(lua_State* L, int idx) const;
 	void* PointerValue;
@@ -649,6 +658,27 @@ template<class C, class T> inline void Output::GetCList(lua_State* L, int idx) c
 		v->AddTail(value);
 		lua_settop(L, top);
 	}
+}
+
+template<class T, class K, class V> inline void Output::GetCMap(lua_State* L, int idx) const
+{
+	T* v = (T*)PointerValue;
+	luaL_checktype(L, idx, LUA_TTABLE);
+	int top = lua_gettop(L);
+	lua_pushnil(L);
+	while (lua_next(L, idx) != 0)
+	{
+		lua_pushvalue(L, top+1);
+		K key;
+		Output outputKey(key);
+		outputKey.Get(L, top+3);
+		V value;
+		Output output(value);
+		output.Get(L, top+2);
+		lua_settop(L, top+1);
+		v->SetAt(key, value);
+	}
+	lua_settop(L, top);
 }
 
 template<> inline void Input::PushValue<CStringA>(lua_State* L) const
