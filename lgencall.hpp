@@ -22,7 +22,7 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 1.2.2
+// Version 1.2.3
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
@@ -149,6 +149,14 @@ public:
 	Input(const CPtrList& value) { pPush = &Input::PushCList<CPtrList>; PointerValue = &value; }
 	Input(const CObList& value) { pPush = &Input::PushCList<CObList>; PointerValue = &value; }
 	Input(const CStringList& value) { pPush = &Input::PushCList<CStringList>; PointerValue = &value; }
+	template<class K, class AK, class V, class AV> Input(const CMap<K,AK,V,AV>& value) { pPush = &Input::PushCMap<CMap<K,AK,V,AV>,K,V>; PointerValue = &value; }
+	Input(const CMapWordToPtr& value) { pPush = &Input::PushCMap<CMapWordToPtr, WORD, void*>; PointerValue = &value; }
+	Input(const CMapPtrToWord& value) { pPush = &Input::PushCMap<CMapPtrToWord, void*, WORD>; PointerValue = &value; }
+	Input(const CMapPtrToPtr& value) { pPush = &Input::PushCMap<CMapPtrToPtr, void*, void*>; PointerValue = &value; }
+	Input(const CMapWordToOb& value) { pPush = &Input::PushCMap<CMapWordToOb, WORD, CObject*>; PointerValue = &value; }
+	Input(const CMapStringToPtr& value) { pPush = &Input::PushCMap<CMapStringToPtr, CString, void*>; PointerValue = &value; }
+	Input(const CMapStringToOb& value) { pPush = &Input::PushCMap<CMapStringToOb, CString, CObject*>; PointerValue = &value; }
+	Input(const CMapStringToString& value) { pPush = &Input::PushCMap<CMapStringToString, CString, CString>; PointerValue = &value; }
 #endif
 
 	void Push(lua_State* L) const { (this->*pPush)(L); }
@@ -168,6 +176,7 @@ private:
 	template<class T> void PushSet(lua_State* L) const;
 	template<class T> void PushCArray(lua_State* L) const;
 	template<class T> void PushCList(lua_State* L) const;
+	template<class T, class K, class V> void PushCMap(lua_State* L) const;
 	template<class Key, class T> void PushMap(lua_State* L) const;
 
 	void (Input::*pPush)(lua_State* L) const;
@@ -586,6 +595,24 @@ template<class T> inline void Input::PushCList(lua_State* L) const
 		Input input(v->GetNext(pos));
 		input.Push(L);
 		lua_rawseti(L, -2, i+1);
+	}
+}
+
+template<class T, class K, class V> inline void Input::PushCMap(lua_State* L) const
+{
+	const T* v = (const T*)PointerValue;
+	lua_createtable(L, 0, (int)v->GetCount());
+	POSITION pos = v->GetStartPosition();
+	while(pos)
+	{
+		K key;
+		V value;
+		v->GetNextAssoc(pos, key, value);
+		Input inkey(key);
+		inkey.Push(L);
+		Input invalue(value);
+		invalue.Push(L);
+		lua_rawset(L, -3);
 	}
 }
 

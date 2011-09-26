@@ -11,6 +11,7 @@ private:
 	bool InputArrays();
 	bool InputStringArray();
 	bool InputLists();
+	bool InputMaps();
 	bool InputSimpleValues();
 	bool OutputArrays();
 	bool OutputStringArrays();

@@ -18,6 +18,7 @@ bool TestMFC::All()
 	InputStringArray();
 	InputArrays();
 	InputLists();
+	InputMaps();
 	InputSimpleValues();
 	OutputArrays();
 	OutputStringArrays();
@@ -62,6 +63,21 @@ bool TestMFC::InputStringArray()
 	CArray<CStringA> v1; v1.Add("s7"); v1.Add("s8"); 
 	CStringArray v2; v2.Add(L"s9"); v2.Add(L"s10"); 
 	return InputCommon("InputStringList", 0x47a2b000, Inputs(v1, v2));
+}
+
+bool TestMFC::InputMaps()
+{
+	CMap<int,int,PSTRING,PSTRING> v1; v1.SetAt(1, "V1"); v1.SetAt(2, "V2");
+	CMapWordToPtr v2; v2.SetAt(3, NULL);
+	CMapPtrToWord v3; v3.SetAt(NULL, 9);
+	CMapPtrToPtr v4; v4.SetAt(NULL, NULL);
+	CByteArray obj;
+	CMapWordToOb v5; v5.SetAt(4, &obj);
+	CMapStringToPtr v6; v6.SetAt(_T("Hello"), NULL);
+	CMapStringToOb v7; v7.SetAt(_T("World"), &obj);
+	CMapStringToString v8; v8.SetAt(_T("Foo"), _T("Bar"));
+
+	return InputCommon("InputMaps", 0x85405EA7, Inputs(v1, v2, v3, v4, v5, v6, v7, v8));
 }
 
 bool TestMFC::InputSimpleValues()
