@@ -22,7 +22,7 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 1.2.5
+// Version 1.2.6
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
@@ -209,6 +209,7 @@ public:
 #endif
 #if LCBC_USE_MFC
 	template<class T, class A> Output(CArray<T,A>& value) { pGet = &Output::GetCArray<CArray<T,A>,T>; PointerValue = &value; }
+	template<class B, class T> Output(CTypedPtrArray<B,T>& value) { pGet = &Output::GetCArray<CTypedPtrArray<B,T>,T>; PointerValue = &value; }
 	Output(CByteArray& value) { pGet = &Output::GetCArray<CByteArray, BYTE>; PointerValue = &value; }
 	Output(CDWordArray& value) { pGet = &Output::GetCArray<CDWordArray, DWORD>; PointerValue = &value; }
 	Output(CObArray& value) { pGet = &Output::GetCArray<CObArray, CObject*>; PointerValue = &value; }
@@ -217,10 +218,12 @@ public:
 	Output(CUIntArray& value) { pGet = &Output::GetCArray<CUIntArray, UINT>; PointerValue = &value; }
 	Output(CWordArray& value) { pGet = &Output::GetCArray<CWordArray, WORD>; PointerValue = &value; }
 	template<class T, class A> Output(CList<T,A>& value) { pGet = &Output::GetCList<CList<T,A>,T>; PointerValue = &value; }
+	template<class B, class T> Output(CTypedPtrList<B,T>& value) { pGet = &Output::GetCList<CTypedPtrList<B,T>,T>; PointerValue = &value; }
 	Output(CPtrList& value) { pGet = &Output::GetCList<CPtrList, void*>; PointerValue = &value; }
 	Output(CObList& value) { pGet = &Output::GetCList<CObList, CObject*>; PointerValue = &value; }
 	Output(CStringList& value) { pGet = &Output::GetCList<CStringList, CString>; PointerValue = &value; }
 	template<class K, class AK, class V, class AV> Output(CMap<K,AK,V,AV>& value) { pGet = &Output::GetCMap<CMap<K,AK,V,AV>,K,V>; PointerValue = &value; }
+	template<class B, class K, class V> Output(CTypedPtrMap<B,K,V>& value) { pGet = &Output::GetCMap<CTypedPtrMap<B,K,V>,K,V>; PointerValue = &value; }
 	Output(CMapWordToPtr& value) { pGet = &Output::GetCMap<CMapWordToPtr, WORD, void*>; PointerValue = &value; }
 	Output(CMapPtrToWord& value) { pGet = &Output::GetCMap<CMapPtrToWord, void*, WORD>; PointerValue = &value; }
 	Output(CMapPtrToPtr& value) { pGet = &Output::GetCMap<CMapPtrToPtr, void*, void*>; PointerValue = &value; }

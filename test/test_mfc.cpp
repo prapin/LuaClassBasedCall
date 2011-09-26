@@ -93,6 +93,12 @@ bool TestMFC::InputSimpleValues()
 	CTimeSpan v5(10);
 	return InputCommon("InputSimpleValues", 0xF4EB9FC9, Inputs(v1, v2, v3, v4, v5));
 }
+namespace lua {
+template<> void Output::GetValue<char*>(lua_State* L, int idx) const
+{
+	char** msg = (char**) PointerValue;
+	*msg = (char*)luaL_checkstring(L, idx);
+}}
 
 bool TestMFC::OutputArrays()
 {
@@ -102,15 +108,17 @@ bool TestMFC::OutputArrays()
 	CUIntArray v4;
 	CWordArray v5;
 	CObArray v6;
-	return OutputCommonStart("OutputArrays", "return {1,2,3,4},{5,6},{io.stdin},{10},{11,12},{}", 
-			Outputs(v1, v2, v3, v4, v5, v6)) &&
-			OutputCommonEnd(0xE4EA5C26, "%d:{%d,%d,%d,%d},%d:{%d,%d},%d:{%d},%d:{%d},%d:{%d,%d},%d:{}", 
+	CTypedPtrArray<CPtrArray, char*> v7;
+	return OutputCommonStart("OutputArrays", "return {1,2,3,4},{5,6},{io.stdin},{10},{11,12},{},{13}", 
+			Outputs(v1, v2, v3, v4, v5, v6, v7)) &&
+			OutputCommonEnd(0x1ED6F509, "%d:{%d,%d,%d,%d},%d:{%d,%d},%d:{%d},%d:{%d},%d:{%d,%d},%d:{},%d:{%s}", 
 			v1.GetSize(), v1[0], v1[1],v1[2], v1[3], 
 			v2.GetSize(), v2[0], v2[1], 
 			v3.GetSize(), v3[0] != NULL,
 			v4.GetSize(), v4[0], 
 			v5.GetSize(), v5[0], v5[1],
-			v6.GetSize());
+			v6.GetSize(),
+			v7.GetSize(), v7[0]);
 }
 
 bool TestMFC::OutputStringArrays()
@@ -136,13 +144,15 @@ bool TestMFC::OutputLists()
 	CPtrList v2;
 	CObList v3;
 	CStringList v4;
-	return OutputCommonStart("OutputLists", "return {1,2,3,4},{io.stdin},{},{'Hello'}", 
-			Outputs(v1, v2, v3, v4)) &&
-		OutputCommonEnd(0xE4EA5C26, "%d:{%d,...},%d:{%d},%d:{},%d:{%S}", 
+	CTypedPtrList<CPtrList, char*> v5;
+	return OutputCommonStart("OutputLists", "return {1,2,3,4},{io.stdin},{},{'Hello'},{'World'}", 
+			Outputs(v1, v2, v3, v4, v5)) &&
+		OutputCommonEnd(0x3772EACE, "%d:{%d,...},%d:{%d},%d:{},%d:{%S},%d:{%s}", 
 			v1.GetCount(), v1.GetHead(), 
 			v2.GetCount(), v2.GetHead() != NULL,
 			v3.GetCount(),  
-			v4.GetCount(), v4.GetHead());
+			v4.GetCount(), v4.GetHead(),
+			v5.GetCount(), v5.GetHead());
 }
 
 bool TestMFC::OutputMaps()
@@ -155,11 +165,12 @@ bool TestMFC::OutputMaps()
 	CMapStringToPtr v6;
 	CMapStringToOb v7;
 	CMapStringToString v8;
-	return OutputCommonStart("OutputMaps", "p=io.stdin; return {1,2},{p},{[p]=5},{[p]=p},{},{hello=p},{},{foo='baz'}", 
-			Outputs(v1, v2, v3, v4, v5, v6, v7, v8)) &&
-		OutputCommonEnd(0x5A8DE320, "%d,%d,%d,%d,%d,%d,%d,%d", 
+	CTypedPtrMap<CMapWordToPtr, WORD, char*> v9;
+	return OutputCommonStart("OutputMaps", "p=io.stdin; return {1,2},{p},{[p]=5},{[p]=p},{},{hello=p},{},{foo='baz'},{4,7}", 
+			Outputs(v1, v2, v3, v4, v5, v6, v7, v8, v9)) &&
+		OutputCommonEnd(0x1CB8E53C, "%d,%d,%d,%d,%d,%d,%d,%d,%d", 
 			v1.GetCount(), v2.GetCount(), v3.GetCount(), v4.GetCount(),
-			v5.GetCount(), v6.GetCount(), v7.GetCount(), v8.GetCount());
+			v5.GetCount(), v6.GetCount(), v7.GetCount(), v8.GetCount(), v9.GetCount());
 }
 
 bool TestMFC::OutputSimpleValues()
