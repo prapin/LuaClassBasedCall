@@ -22,7 +22,7 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 1.2.4
+// Version 1.2.5
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
@@ -138,6 +138,7 @@ public:
 	Input(const CTime& value);
 	Input(const CTimeSpan& value);
 	template<class T, class A> Input(const CArray<T,A>& value) { pPush = &Input::PushCArray<CArray<T,A>>; PointerValue = &value; }
+	template<class B, class T> Input(const CTypedPtrArray<B,T>& value) { pPush = &Input::PushCArray<CTypedPtrArray<B,T>>; PointerValue = &value; }
 	Input(const CByteArray& value) { pPush = &Input::PushCArray<CByteArray>; PointerValue = &value; }
 	Input(const CDWordArray& value) { pPush = &Input::PushCArray<CDWordArray>; PointerValue = &value; }
 	Input(const CObArray& value) { pPush = &Input::PushCArray<CObArray>; PointerValue = &value; }
@@ -146,10 +147,12 @@ public:
 	Input(const CUIntArray& value) { pPush = &Input::PushCArray<CUIntArray>; PointerValue = &value; }
 	Input(const CWordArray& value) { pPush = &Input::PushCArray<CWordArray>; PointerValue = &value; }
 	template<class T, class A> Input(const CList<T,A>& value) { pPush = &Input::PushCList<CList<T,A>>; PointerValue = &value; }
+	template<class B, class T> Input(const CTypedPtrList<B,T>& value) { pPush = &Input::PushCList<CTypedPtrList<B,T>>; PointerValue = &value; }
 	Input(const CPtrList& value) { pPush = &Input::PushCList<CPtrList>; PointerValue = &value; }
 	Input(const CObList& value) { pPush = &Input::PushCList<CObList>; PointerValue = &value; }
 	Input(const CStringList& value) { pPush = &Input::PushCList<CStringList>; PointerValue = &value; }
 	template<class K, class AK, class V, class AV> Input(const CMap<K,AK,V,AV>& value) { pPush = &Input::PushCMap<CMap<K,AK,V,AV>,K,V>; PointerValue = &value; }
+	template<class B, class K, class V> Input(const CTypedPtrMap<B,K,V>& value) { pPush = &Input::PushCMap<CTypedPtrMap<B,K,V>,K,V>; PointerValue = &value; }
 	Input(const CMapWordToPtr& value) { pPush = &Input::PushCMap<CMapWordToPtr, WORD, void*>; PointerValue = &value; }
 	Input(const CMapPtrToWord& value) { pPush = &Input::PushCMap<CMapPtrToWord, void*, WORD>; PointerValue = &value; }
 	Input(const CMapPtrToPtr& value) { pPush = &Input::PushCMap<CMapPtrToPtr, void*, void*>; PointerValue = &value; }

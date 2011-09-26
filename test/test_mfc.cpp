@@ -44,8 +44,9 @@ bool TestMFC::InputArrays()
 	CUIntArray v4; v4.Add(6); v4.Add(7);
 	CWordArray v5; v5.Add(8);
 	CObArray v6; v6.Add(&v1);
+	CTypedPtrArray<CPtrArray, char*> v7; v7.Add("Hello");
 
-	return InputCommon("InputArrays", 0x3468A59E, Inputs(v1, v2, v3, v4, v5, v6));
+	return InputCommon("InputArrays", 0x3ACC6BF8, Inputs(v1, v2, v3, v4, v5, v6, v7));
 }
 
 bool TestMFC::InputLists()
@@ -56,7 +57,8 @@ bool TestMFC::InputLists()
 	CByteArray obj;
 	CObList v4; v4.AddHead(&obj);
 	CStringList v5; v5.AddTail("Foo"); v5.AddTail("bar"); v5.AddTail("Baz"); 
-	return InputCommon("InputLists", 0x163784A4, Inputs(v1, v2, v3, v4, v5));
+	CTypedPtrList<CPtrList, char*> v6; v6.AddTail("Hello");
+	return InputCommon("InputLists", 0x04B32636, Inputs(v1, v2, v3, v4, v5, v6));
 }
 
 bool TestMFC::InputStringArray()
@@ -77,8 +79,9 @@ bool TestMFC::InputMaps()
 	CMapStringToPtr v6; v6.SetAt(_T("Hello"), NULL);
 	CMapStringToOb v7; v7.SetAt(_T("World"), &obj);
 	CMapStringToString v8; v8.SetAt(_T("Foo"), _T("Bar"));
+	CTypedPtrMap<CMapWordToPtr, WORD, char*> v9; v9.SetAt(9, "baz");
 
-	return InputCommon("InputMaps", 0x85405EA7, Inputs(v1, v2, v3, v4, v5, v6, v7, v8));
+	return InputCommon("InputMaps", 0x0E41F73E, Inputs(v1, v2, v3, v4, v5, v6, v7, v8, v9));
 }
 
 bool TestMFC::InputSimpleValues()
