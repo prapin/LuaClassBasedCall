@@ -15,9 +15,11 @@ using namespace std;
 bool TestCSL::All()
 {
 	InputStrings();
-	InputStringList();
+	InputArrays();
+	InputHash();
 	OutputArrays();
 	OutputStringArrays();
+	OutputHash();
 	return FailedCnt == 0;
 }
 
@@ -28,21 +30,31 @@ bool TestCSL::InputStrings()
 	return InputCommon("InputStrings", 0xc207dadc, Inputs(s1, s2));
 }
 
-bool TestCSL::InputStringList()
+bool TestCSL::InputArrays()
 {
 	vector<const char*> v1; v1.push_back("s7"); v1.push_back("s8"); 
-	vector<const wchar_t*> v2; v2.push_back(L"s9"); v2.push_back(L"s10"); 
-	return InputCommon("InputStringList", 0x47a2b000, Inputs(v1, v2));
+	list<const wchar_t*> v2; v2.push_back(L"s9"); v2.push_back(L"s10"); 
+	deque<int> v3; v3.push_back(8);
+	return InputCommon("InputArrays", 0x47a2b000, Inputs(v1, v2, v3));
+}
+
+bool TestCSL::InputHash()
+{
+	map<const char*,int> v1; v1["s1"]=1;
+	set<float> v2; v2.insert(2.5f), v2.insert(9.5f);
+	multiset<short> v3; v3.insert(1); v3.insert(2); v3.insert(1); 
+	return InputCommon("InputHash", 0x47a2b000, Inputs(v1, v2, v3));
 }
 
 bool TestCSL::OutputArrays()
 {
 	vector<short> v1;
-	vector<char> str; 
-	return OutputCommonStart("OutputArrays", "return {1,2,3,4},{72,101,108,108,111,0}", 
-			Outputs(v1, str)) &&
-		OutputCommonEnd(0x56dfd160, "%d:{%d,%d,%d,%d},%d:'%c%c%c%c%c'\n", 
-			v1.size(), v1[0], v1[1],v1[2], v1[3], str.size(), str[0], str[1], str[2], str[3], str[4]);
+	list<char> str; 
+	deque<double> v3;
+	return OutputCommonStart("OutputArrays", "return {1,2,3,4},{72,101,108,108,111,0},{8,9}", 
+			Outputs(v1, str, v3)) &&
+		OutputCommonEnd(0x56dfd160, "%d:{%d,%d,%d,%d},%d,%d", 
+			v1.size(), v1[0], v1[1],v1[2], v1[3], str.size(),v3.size());
 }
 
 bool TestCSL::OutputStringArrays()
@@ -58,6 +70,17 @@ bool TestCSL::OutputStringArrays()
 			str2.size(), str2[0], str2[1], str2[2],
 			str3.size(), str3[0].c_str(), str3[1].c_str(), str3[2].c_str(), str3[3].c_str(),
 			str4.size(), str4[0].c_str(), str4[1].c_str());
+}
+
+bool TestCSL::OutputHash()
+{
+	map<const char*,int> v1;
+	set<float> v2;
+	multiset<short> v3;
+	return OutputCommonStart("OutputHash", "return {S1=2,S2=1},{1,1},{3,2}", 
+			Outputs(v1, v2, v3)) &&
+		OutputCommonEnd(0x56dfd160, "%d,%d,%d", 
+			v1.size(), v2.size(),v3.size());
 }
 
 int main(int /*argc*/, char* /*argv*/[])

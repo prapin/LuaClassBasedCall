@@ -8,7 +8,9 @@ public:
 
 private:
 	bool InputStrings();
-	bool InputStringList();
+	bool InputArrays();
+	bool InputHash();
 	bool OutputArrays();
 	bool OutputStringArrays();
+	bool OutputHash();
 };
