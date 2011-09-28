@@ -88,6 +88,8 @@ extern "C" {
 #include <map>
 #include <list>
 #include <set>
+#include <queue>
+#include <stack>
 #endif
 
 #if LCBC_USE_MFC
@@ -216,6 +218,9 @@ public:
 	template<class K, class T, class C, class A> Output(map<K,T,C,A>& value) { pGet = &Output::GetMap<K,T>; PointerValue = &value; }
 	template<class T, class C, class A> Output(set<T,C,A>& value) { pGet = &Output::GetSet<set<T,C,A>,T>; PointerValue = &value; }
 	template<class T, class C, class A> Output(multiset<T,C,A>& value) { pGet = &Output::GetSet<multiset<T,C,A>,T>; PointerValue = &value; }
+	template<class T, class C> Output(queue<T,C>& value) { pGet = &Output::GetQueue<queue<T,C> >; PointerValue = &value; }
+	template<class T, class C> Output(stack<T,C>& value) { pGet = &Output::GetQueue<stack<T,C> >; PointerValue = &value; }
+	template<class T, class C, class P> Output(priority_queue<T,C,P>& value) { pGet = &Output::GetQueue<priority_queue<T,C,P> >; PointerValue = &value; }
 #endif
 #if LCBC_USE_MFC
 	template<class T, class A> Output(CArray<T,A>& value) { pGet = &Output::GetCArray<CArray<T,A>,T>; PointerValue = &value; }
@@ -256,6 +261,7 @@ private:
 	template<class T, class V> void GetContainer(lua_State* L, int idx) const;
 	template<class K, class T> void GetMap(lua_State* L, int idx) const;
 	template<class T, class V> void GetSet(lua_State* L, int idx) const;
+	template<class T> void GetQueue(lua_State* L, int idx) const;
 	template<class C, class T> void GetCArray(lua_State* L, int idx) const;
 	template<class C, class T> void GetCList(lua_State* L, int idx) const;
 	template<class T, class K, class V> void GetCMap(lua_State* L, int idx) const;
@@ -571,6 +577,23 @@ template<class K, class T> inline void Output::GetMap(lua_State* L, int idx) con
 		(*m)[key] = value;
 	}
 	lua_settop(L, top);
+}
+
+template<class T> inline void Output::GetQueue(lua_State* L, int idx) const
+{
+	T* q = (T*)PointerValue;
+	luaL_checktype(L, idx, LUA_TTABLE);
+	size_t len = lua_objlen(L, idx);
+	int top = lua_gettop(L);
+	for(size_t i=0;i<len;i++)
+	{
+		lua_rawgeti(L, idx, (int)i+1);
+		typename T::value_type value;
+		Output output(value);
+		output.Get(L, top+1);
+		q->push(value);
+		lua_settop(L, top);
+	}
 }
 
 #if LCBC_USE_WIDESTRING

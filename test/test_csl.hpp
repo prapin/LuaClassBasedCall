@@ -14,5 +14,6 @@ private:
 	bool OutputArrays();
 	bool OutputStringArrays();
 	bool OutputHash();
+	bool OutputQueues();
 	bool OutputOther();
 };

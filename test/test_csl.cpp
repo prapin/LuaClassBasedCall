@@ -21,6 +21,7 @@ bool TestCSL::All()
 	OutputArrays();
 	OutputStringArrays();
 	OutputHash();
+	OutputQueues();
 	OutputOther();
 	return FailedCnt == 0;
 }
@@ -35,7 +36,7 @@ bool TestCSL::InputStrings()
 bool TestCSL::InputArrays()
 {
 	vector<const char*> v1; v1.push_back("s7"); v1.push_back("s8"); 
-	list<const wchar_t*, allocator<const wchar_t*>> v2; v2.push_back(L"s9"); v2.push_back(L"s10"); 
+	list<const wchar_t*, allocator<const wchar_t*> > v2; v2.push_back(L"s9"); v2.push_back(L"s10"); 
 	deque<int> v3; v3.push_back(8);
 	return InputCommon("InputArrays", 0x47a2b000, Inputs(v1, v2, v3));
 }
@@ -86,6 +87,17 @@ bool TestCSL::OutputHash()
 	set<float> v2;
 	multiset<short> v3;
 	return OutputCommonStart("OutputHash", "return {S1=2,S2=1},{1,1},{3,2}", 
+			Outputs(v1, v2, v3)) &&
+		OutputCommonEnd(0x56dfd160, "%d,%d,%d", 
+			v1.size(), v2.size(),v3.size());
+}
+
+bool TestCSL::OutputQueues()
+{
+	queue<int> v1; 
+	stack<wstring> v2;
+	priority_queue<char> v3;
+	return OutputCommonStart("OutputQueues", "return {1,2,3},{4,5},{6,7,8}", 
 			Outputs(v1, v2, v3)) &&
 		OutputCommonEnd(0x56dfd160, "%d,%d,%d", 
 			v1.size(), v2.size(),v3.size());
