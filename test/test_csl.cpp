@@ -16,6 +16,8 @@ bool TestCSL::All()
 {
 	InputStrings();
 	InputStringList();
+	InputMaps();
+	InputOther();
 	OutputArrays();
 	OutputStringArrays();
 	return FailedCnt == 0;
@@ -33,6 +35,19 @@ bool TestCSL::InputStringList()
 	vector<const char*> v1; v1.push_back("s7"); v1.push_back("s8"); 
 	vector<const wchar_t*> v2; v2.push_back(L"s9"); v2.push_back(L"s10"); 
 	return InputCommon("InputStringList", 0x47a2b000, Inputs(v1, v2));
+}
+
+bool TestCSL::InputMaps()
+{
+	map<int, PSTRING> v1; v1[3] = "Hello"; v1[10]="World";
+	return InputCommon("InputMaps", 0x47a2b000, Inputs(v1));
+
+}
+
+bool TestCSL::InputOther()
+{
+	pair<int, PSTRING> v1(2, "Hello");
+	return InputCommon("InputOther", 0x47a2b000, Inputs(v1));
 }
 
 bool TestCSL::OutputArrays()

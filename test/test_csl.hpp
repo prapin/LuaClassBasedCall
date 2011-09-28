@@ -9,6 +9,8 @@ public:
 private:
 	bool InputStrings();
 	bool InputStringList();
+	bool InputMaps();
+	bool InputOther();
 	bool OutputArrays();
 	bool OutputStringArrays();
 };

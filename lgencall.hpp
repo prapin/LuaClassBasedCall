@@ -127,6 +127,7 @@ public:
 #if LCBC_USE_CSL
 	Input(const string& value);
 	Input(const wstring& value);
+	template<class T1, class T2> Input(const pair<T1,T2>& value)  { pPush = &Input::PushPair<T1,T2>; PointerValue = &value; }
 	template<class T> Input(const vector<T>& value) { pPush = &Input::PushVector<T>; PointerValue = &value; }
 	template<class Key, class T> Input(const map<Key,T>& value) { pPush = &Input::PushMap<Key,T>; PointerValue = &value; }
 	template<class T> Input(const list<T>& value) { pPush = &Input::PushList<T>; PointerValue = &value; }
@@ -180,10 +181,11 @@ private:
 	template<class T> void PushVector(lua_State* L) const;
 	template<class T> void PushList(lua_State* L) const;
 	template<class T> void PushSet(lua_State* L) const;
+	template<class Key, class T> void PushMap(lua_State* L) const;
+	template<class T1, class T2> void PushPair(lua_State* L) const;
 	template<class T> void PushCArray(lua_State* L) const;
 	template<class T> void PushCList(lua_State* L) const;
 	template<class T, class K, class V> void PushCMap(lua_State* L) const;
-	template<class Key, class T> void PushMap(lua_State* L) const;
 
 	void (Input::*pPush)(lua_State* L) const;
 	union 
@@ -419,6 +421,18 @@ template<> inline void Output::GetSizedValue<wchar_t>(lua_State* L, int idx) con
 }
 
 #if LCBC_USE_CSL
+template<class T1, class T2> inline void Input::PushPair(lua_State* L) const
+{
+	const pair<T1,T2>* p = (const pair<T1,T2>*)PointerValue;
+	lua_createtable(L, 2, 0);
+	Input first(p->first);
+	first.Push(L);
+	lua_rawseti(L, -2, 1);
+	Input second(p->second);
+	second.Push(L);
+	lua_rawseti(L, -2, 2);
+}
+
 template<class T> inline void Input::PushVector(lua_State* L) const
 {
 	const vector<T>* v = (const vector<T>*)PointerValue;
@@ -438,9 +452,9 @@ template<class Key, class T> inline void Input::PushMap(lua_State* L) const
 	lua_createtable(L, 0, m->size());
 	for (it=m->begin() ; it != m->end(); it++)
 	{
-		Input key((*it).first);
+		Input key(it->first);
 		key.Push(L);
-		Input value((*it).second);
+		Input value(it->second);
 		value.Push(L);
 		lua_settable(L, -3);
 	}
