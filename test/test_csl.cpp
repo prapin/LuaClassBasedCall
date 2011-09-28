@@ -21,6 +21,7 @@ bool TestCSL::All()
 	OutputArrays();
 	OutputStringArrays();
 	OutputHash();
+	OutputOther();
 	return FailedCnt == 0;
 }
 
@@ -34,24 +35,17 @@ bool TestCSL::InputStrings()
 bool TestCSL::InputArrays()
 {
 	vector<const char*> v1; v1.push_back("s7"); v1.push_back("s8"); 
-	list<const wchar_t*> v2; v2.push_back(L"s9"); v2.push_back(L"s10"); 
+	list<const wchar_t*, allocator<const wchar_t*>> v2; v2.push_back(L"s9"); v2.push_back(L"s10"); 
 	deque<int> v3; v3.push_back(8);
 	return InputCommon("InputArrays", 0x47a2b000, Inputs(v1, v2, v3));
 }
 
 bool TestCSL::InputHash()
 {
-	map<const char*,int> v1; v1["s1"]=1;
-	set<float> v2; v2.insert(2.5f), v2.insert(9.5f);
+	map<const char*,int > v1; v1["s1"]=1;
+	set<float, greater<float>, allocator<float> > v2; v2.insert(2.5f), v2.insert(9.5f);
 	multiset<short> v3; v3.insert(1); v3.insert(2); v3.insert(1); 
 	return InputCommon("InputHash", 0x47a2b000, Inputs(v1, v2, v3));
-}
-
-bool TestCSL::InputMaps()
-{
-	map<int, PSTRING> v1; v1[3] = "Hello"; v1[10]="World";
-	return InputCommon("InputMaps", 0x47a2b000, Inputs(v1));
-
 }
 
 bool TestCSL::InputOther()
@@ -96,6 +90,16 @@ bool TestCSL::OutputHash()
 		OutputCommonEnd(0x56dfd160, "%d,%d,%d", 
 			v1.size(), v2.size(),v3.size());
 }
+
+bool TestCSL::OutputOther()
+{
+	pair<int, string> v1;
+	return OutputCommonStart("OutputOther", "return {1,2}", 
+			Outputs(v1)) &&
+		OutputCommonEnd(0x56dfd160, "{%d,%s}", 
+		v1.first, v1.second.c_str());
+}
+
 
 int main(int /*argc*/, char* /*argv*/[])
 {

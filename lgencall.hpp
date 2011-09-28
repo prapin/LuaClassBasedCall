@@ -129,12 +129,12 @@ public:
 	Input(const string& value);
 	Input(const wstring& value);
 	template<class T1, class T2> Input(const pair<T1,T2>& value)  { pPush = &Input::PushPair<T1,T2>; PointerValue = &value; }
-	template<class T> Input(const vector<T>& value) { pPush = &Input::PushContainer<vector<T> >; PointerValue = &value; }
-	template<class T> Input(const list<T>& value) { pPush = &Input::PushContainer<list<T> >; PointerValue = &value; }
-	template<class T> Input(const deque<T>& value) { pPush = &Input::PushContainer<deque<T> >; PointerValue = &value; }
-	template<class Key, class T> Input(const map<Key,T>& value) { pPush = &Input::PushMap<Key,T>; PointerValue = &value; }
-	template<class T> Input(const set<T>& value) { pPush = &Input::PushSet<set<T> >; PointerValue = &value; }
-	template<class T> Input(const multiset<T>& value) { pPush = &Input::PushSet<multiset<T> >; PointerValue = &value; }
+	template<class T, class A> Input(const vector<T,A>& value) { pPush = &Input::PushContainer<vector<T,A> >; PointerValue = &value; }
+	template<class T, class A> Input(const list<T,A>& value) { pPush = &Input::PushContainer<list<T,A> >; PointerValue = &value; }
+	template<class T, class A> Input(const deque<T,A>& value) { pPush = &Input::PushContainer<deque<T,A> >; PointerValue = &value; }
+	template<class K, class T, class C, class A> Input(const map<K,T,C,A>& value) { pPush = &Input::PushMap<K,T>; PointerValue = &value; }
+	template<class T, class C, class A> Input(const set<T,C,A>& value) { pPush = &Input::PushSet<set<T,C,A> >; PointerValue = &value; }
+	template<class T, class C, class A> Input(const multiset<T,C,A>& value) { pPush = &Input::PushSet<multiset<T,C,A> >; PointerValue = &value; }
 #endif
 #if LCBC_USE_MFC
 	Input(const CStringA& value);
@@ -209,12 +209,13 @@ public:
 	template<class T> Output(const T*& value, size_t& size) { pGet = &Output::GetSizedValue<T>; pSize = &size; PointerValue = &value; }
 	template<class T, size_t L2> Output(size_t& len1, T value[][L2]) {pGet = &Output::Get2DArray<T,L2>; pSize = &len1; PointerValue = value;  }
 #if LCBC_USE_CSL
-	template<class T> Output(vector<T>& value) { pGet = &Output::GetContainer<vector<T>,T>; PointerValue = &value; }
-	template<class T> Output(list<T>& value) { pGet = &Output::GetContainer<list<T>,T>; PointerValue = &value; }
-	template<class T> Output(deque<T>& value) { pGet = &Output::GetContainer<deque<T>,T>; PointerValue = &value; }
-	template<class K, class T> Output(map<K,T>& value) { pGet = &Output::GetMap<K,T>; PointerValue = &value; }
-	template<class T> Output(set<T>& value) { pGet = &Output::GetSet<set<T>,T>; PointerValue = &value; }
-	template<class T> Output(multiset<T>& value) { pGet = &Output::GetSet<multiset<T>,T>; PointerValue = &value; }
+	template<class T1, class T2> Output(pair<T1,T2>& value)  { pGet = &Output::GetPair<pair<T1,T2> >; PointerValue = &value; }
+	template<class T, class A> Output(vector<T,A>& value) { pGet = &Output::GetContainer<vector<T,A>,T>; PointerValue = &value; }
+	template<class T, class A> Output(list<T,A>& value) { pGet = &Output::GetContainer<list<T,A>,T>; PointerValue = &value; }
+	template<class T, class A> Output(deque<T,A>& value) { pGet = &Output::GetContainer<deque<T,A>,T>; PointerValue = &value; }
+	template<class K, class T, class C, class A> Output(map<K,T,C,A>& value) { pGet = &Output::GetMap<K,T>; PointerValue = &value; }
+	template<class T, class C, class A> Output(set<T,C,A>& value) { pGet = &Output::GetSet<set<T,C,A>,T>; PointerValue = &value; }
+	template<class T, class C, class A> Output(multiset<T,C,A>& value) { pGet = &Output::GetSet<multiset<T,C,A>,T>; PointerValue = &value; }
 #endif
 #if LCBC_USE_MFC
 	template<class T, class A> Output(CArray<T,A>& value) { pGet = &Output::GetCArray<CArray<T,A>,T>; PointerValue = &value; }
@@ -251,6 +252,7 @@ private:
 	template<class T> void GetSizedValue(lua_State* L, int idx) const;
 	template<class T> void GetArray(lua_State* L, int idx) const;
 	template<class T, size_t L2> void Get2DArray(lua_State* L, int idx) const;
+	template<class T> void GetPair(lua_State* L, int idx) const;
 	template<class T, class V> void GetContainer(lua_State* L, int idx) const;
 	template<class K, class T> void GetMap(lua_State* L, int idx) const;
 	template<class T, class V> void GetSet(lua_State* L, int idx) const;
@@ -492,7 +494,21 @@ inline Input::Input(const string& value)
 	PointerValue = &value; 
 }
 
-template<> void Output::GetValue<string>(lua_State* L, int idx) const
+template<class T> inline void Output::GetPair(lua_State* L, int idx) const
+{
+	T* p = (T*)PointerValue;
+	luaL_checktype(L, idx, LUA_TTABLE);
+	int top = lua_gettop(L);
+	lua_rawgeti(L, idx, 1);
+	lua_rawgeti(L, idx, 2);
+	Output o1(p->first);
+	o1.Get(L, top+1);
+	Output o2(p->second);
+	o2.Get(L, top+2);
+	lua_settop(L, top);
+}
+
+template<> inline void Output::GetValue<string>(lua_State* L, int idx) const
 {
 	size_t size; 
 	const char* str = luaL_checklstring(L, idx, &size); 
