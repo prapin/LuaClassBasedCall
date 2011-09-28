@@ -52,10 +52,10 @@ bool TestCSL::InputHash()
 
 bool TestCSL::InputQueues()
 {
-	queue<int> v1; 
-	stack<wstring> v2;
-	priority_queue<char> v3;
-	return InputCommon("InputQueues", 0x47a2b000, Inputs( v2, v3));
+	queue<int> v1; v1.push(1); v1.push(2); v1.push(3); 
+	stack<wstring> v2; v2.push(L"4"); v2.push(L"5"); 
+	priority_queue<char> v3; v3.push(6); v3.push(7); v3.push(8); 
+	return InputCommon("InputQueues", 0x47a2b000, Inputs(v1, v2, v3));
 }
 
 bool TestCSL::InputOther()

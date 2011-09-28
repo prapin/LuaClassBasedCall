@@ -22,7 +22,7 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 1.2.8
+// Version 1.3.0
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
@@ -138,8 +138,8 @@ public:
 	template<class T, class C, class A> Input(const set<T,C,A>& value) { pPush = &Input::PushSet<set<T,C,A> >; PointerValue = &value; }
 	template<class T, class C, class A> Input(const multiset<T,C,A>& value) { pPush = &Input::PushSet<multiset<T,C,A> >; PointerValue = &value; }
 	template<class T, class C> Input(const queue<T,C>& value) { pPush = &Input::PushQueue<queue<T,C> >; PointerValue = &value; }
-	template<class T, class C> Input(const stack<T,C>& value) { pPush = &Input::PushQueue<stack<T,C> >; PointerValue = &value; }
-	template<class T, class C, class P> Input(const priority_queue<T,C,P>& value) { pPush = &Input::PushQueue<priority_queue<T,C,P> >; PointerValue = &value; }
+	template<class T, class C> Input(const stack<T,C>& value) { pPush = &Input::PushStack<stack<T,C> >; PointerValue = &value; }
+	template<class T, class C, class P> Input(const priority_queue<T,C,P>& value) { pPush = &Input::PushStack<priority_queue<T,C,P> >; PointerValue = &value; }
 #endif
 #if LCBC_USE_MFC
 	Input(const CStringA& value);
@@ -189,6 +189,7 @@ private:
 	template<class T> void PushContainer(lua_State* L) const;
 	template<class T> void PushSet(lua_State* L) const;
 	template<class T> void PushMap(lua_State* L) const;
+	template<class T> void PushStack(lua_State* L) const;
 	template<class T> void PushQueue(lua_State* L) const;
 	template<class T> void PushPair(lua_State* L) const;
 	template<class T> void PushCArray(lua_State* L) const;
@@ -504,18 +505,32 @@ inline Input::Input(const string& value)
 	PointerValue = &value; 
 }
 
-template<class T> inline void Input::PushQueue(lua_State* L) const
+template<class T> inline void Input::PushStack(lua_State* L) const
 {
 	const T* q = (const T*)PointerValue;
 	lua_createtable(L, q->size(), 0);
-	int top = lua_gettop(L);
 	T copy(*q);
 	int i=0;
 	while(!copy.empty())
 	{
 		Input input(copy.top());
 		input.Push(L);
-		lua_rawseti(L, top, ++i);
+		lua_rawseti(L, -2, ++i);
+		copy.pop();
+	}
+}
+
+template<class T> inline void Input::PushQueue(lua_State* L) const
+{
+	const T* q = (const T*)PointerValue;
+	lua_createtable(L, q->size(), 0);
+	T copy(*q);
+	int i=0;
+	while(!copy.empty())
+	{
+		Input input(copy.front());
+		input.Push(L);
+		lua_rawseti(L, -2, ++i);
 		copy.pop();
 	}
 }
