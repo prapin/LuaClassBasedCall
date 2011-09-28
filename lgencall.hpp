@@ -462,7 +462,7 @@ template<class T> inline void Input::PushMap(lua_State* L) const
 {
 	const T* m = (const T*)PointerValue;
 	typename T::const_iterator it;
-	lua_createtable(L, 0, m->size());
+	lua_createtable(L, 0, (int)m->size());
 	for (it=m->begin() ; it != m->end(); it++)
 	{
 		Input key(it->first);
@@ -476,7 +476,7 @@ template<class T> inline void Input::PushMap(lua_State* L) const
 template<class T> inline void Input::PushContainer(lua_State* L) const
 {
 	const T* v = (const T*)PointerValue;
-	lua_createtable(L, v->size(), 0);
+	lua_createtable(L, (int)v->size(), 0);
 	typename T::const_iterator it;
 	int i=0;
 	for (it=v->begin(); it != v->end(); it++,i++)
@@ -492,7 +492,7 @@ template<class T> inline void Input::PushSet(lua_State* L) const
 {
 	const T* s = (const T*)PointerValue;
 	typename T::const_iterator it;
-	lua_createtable(L, 0, s->size());
+	lua_createtable(L, 0, (int)s->size());
 	for (it=s->begin() ; it != s->end(); it++)
 	{
 		Input key(*it);
@@ -517,7 +517,7 @@ inline Input::Input(const string& value)
 template<class T> inline void Input::PushStack(lua_State* L) const
 {
 	const T* q = (const T*)PointerValue;
-	lua_createtable(L, q->size(), 0);
+	lua_createtable(L, (int)q->size(), 0);
 	T copy(*q);
 	int i=0;
 	while(!copy.empty())
@@ -532,7 +532,7 @@ template<class T> inline void Input::PushStack(lua_State* L) const
 template<class T> inline void Input::PushQueue(lua_State* L) const
 {
 	const T* q = (const T*)PointerValue;
-	lua_createtable(L, q->size(), 0);
+	lua_createtable(L, (int)q->size(), 0);
 	T copy(*q);
 	int i=0;
 	while(!copy.empty())
@@ -548,12 +548,12 @@ template<class T> inline void Input::PushValArray(lua_State* L) const
 {
 	const T* v = (const T*)PointerValue;
 	size_t size = v->size();
-	lua_createtable(L, size, 0);
+	lua_createtable(L, (int)size, 0);
 	for(size_t i=0;i<size;i++)
 	{
 		Input input((*v)[i]);
 		input.Push(L);
-		lua_rawseti(L, -2, i+1);
+		lua_rawseti(L, -2, (int)i+1);
 	}
 }
 

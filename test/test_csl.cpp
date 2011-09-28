@@ -8,9 +8,51 @@
 #include "lgencall.hpp"
 #include "test.cpp"
 #include "test_csl.hpp"
+#include <iostream>
+#include <sstream>
 
 using namespace lua;
 using namespace std;
+
+// Template functions to dump container values
+template<class T1, class T2> ostream& operator<< (ostream& out, const pair<T1,T2>& val)
+{
+	out << val.first << "=" << val.second;
+	return out;
+}
+template<class S, class T> S& serialize (S& out, const T& val)
+{
+	typename T::const_iterator it;
+	out << "{";
+	int i=0;
+	for (it=val.begin(); it != val.end(); it++)
+	{
+		if(i++)
+			out << ",";
+		out << *it;
+	}
+	out << "}";
+	return out;
+}
+template<class S, class T, class A> S& operator<< (S& out, const vector<T,A>& val) { return serialize(out, val); }
+template<class S, class T, class A> S& operator<< (S& out, const list<T,A>& val) { return serialize(out, val); }
+template<class S, class T, class A> S& operator<< (S& out, const deque<T,A>& val) { return serialize(out, val); }
+template<class S, class K, class T, class C, class A> S& operator<< (S& out, const map<K,T,C,A>& val) { return serialize(out, val); }
+template<class S, class T, class C, class A> S& operator<< (S& out, const set<T,C,A>& val) { return serialize(out, val); }
+template<class S, class T, class C, class A> S& operator<< (S& out, const multiset<T,C,A>& val) { return serialize(out, val); }
+template<class T> string dump(const T& value)
+{
+	stringstream s;
+	s << value;
+	return s.str();
+}
+template<class T> wstring wdump(const T& value)
+{
+	wstringstream s;
+	s << value;
+	return s.str();
+}
+
 
 bool TestCSL::All()
 {
@@ -76,12 +118,12 @@ bool TestCSL::InputOther()
 bool TestCSL::OutputArrays()
 {
 	vector<short> v1;
-	list<char> str; 
+	list<char> v2; 
 	deque<double> v3;
-	return OutputCommonStart("OutputArrays", "return {1,2,3,4},{72,101,108,108,111,0},{8,9}", 
-			Outputs(v1, str, v3)) &&
-		OutputCommonEnd(0x56dfd160, "%d:{%d,%d,%d,%d},%d,%d", 
-			v1.size(), v1[0], v1[1],v1[2], v1[3], str.size(),v3.size());
+	return OutputCommonStart("OutputArrays", "return {1,2,3,4},{72,101,108,108,111},{8,9}", 
+			Outputs(v1, v2, v3)) &&
+		OutputCommonEnd(0x56dfd160, "%s,%s,%s", 
+			dump(v1).c_str(), dump(v2).c_str(), dump(v3).c_str());
 }
 
 bool TestCSL::OutputStringArrays()
@@ -92,11 +134,8 @@ bool TestCSL::OutputStringArrays()
 	vector<wstring> str4;
 	return OutputCommonStart("OutputStringArrays", "return {1,2,3},{44,55,66},{10,9,8,7},{6,5}",
 			Outputs(str1, str2, str3, str4)) &&
-		OutputCommonEnd(0xdcde586, "%d:{%s,%s,%s},%d:{%S,%S,%S},%d:{%s,%s,%s,%s},%d:{%S,%S}", 
-			str1.size(), str1[0], str1[1], str1[2],
-			str2.size(), str2[0], str2[1], str2[2],
-			str3.size(), str3[0].c_str(), str3[1].c_str(), str3[2].c_str(), str3[3].c_str(),
-			str4.size(), str4[0].c_str(), str4[1].c_str());
+		OutputCommonEnd(0xdcde586, "%s,%S,%s,%S", dump(str1).c_str(), 
+			wdump(str2).c_str(), dump(str3).c_str(), wdump(str4).c_str());
 }
 
 bool TestCSL::OutputHash()
@@ -106,8 +145,8 @@ bool TestCSL::OutputHash()
 	multiset<short> v3;
 	return OutputCommonStart("OutputHash", "return {S1=2,S2=1},{1,1},{3,2}", 
 			Outputs(v1, v2, v3)) &&
-		OutputCommonEnd(0x56dfd160, "%d,%d,%d", 
-			v1.size(), v2.size(),v3.size());
+		OutputCommonEnd(0x56dfd160, "%s,%s,%s", 
+			dump(v1).c_str(), dump(v2).c_str(), dump(v3).c_str());
 }
 
 bool TestCSL::OutputQueues()
@@ -136,8 +175,7 @@ bool TestCSL::OutputOther()
 	pair<int, string> v1;
 	return OutputCommonStart("OutputOther", "return {1,2}", 
 			Outputs(v1)) &&
-		OutputCommonEnd(0x56dfd160, "{%d,%s}", 
-		v1.first, v1.second.c_str());
+		OutputCommonEnd(0x56dfd160, "%s", dump(v1).c_str());
 }
 
 int main(int /*argc*/, char* /*argv*/[])
