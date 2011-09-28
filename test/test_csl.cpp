@@ -17,6 +17,7 @@ bool TestCSL::All()
 	InputStrings();
 	InputArrays();
 	InputHash();
+	InputQueues();
 	InputOther();
 	OutputArrays();
 	OutputStringArrays();
@@ -47,6 +48,14 @@ bool TestCSL::InputHash()
 	set<float, greater<float>, allocator<float> > v2; v2.insert(2.5f), v2.insert(9.5f);
 	multiset<short> v3; v3.insert(1); v3.insert(2); v3.insert(1); 
 	return InputCommon("InputHash", 0x47a2b000, Inputs(v1, v2, v3));
+}
+
+bool TestCSL::InputQueues()
+{
+	queue<int> v1; 
+	stack<wstring> v2;
+	priority_queue<char> v3;
+	return InputCommon("InputQueues", 0x47a2b000, Inputs( v2, v3));
 }
 
 bool TestCSL::InputOther()

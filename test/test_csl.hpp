@@ -10,6 +10,7 @@ private:
 	bool InputStrings();
 	bool InputArrays();
 	bool InputHash();
+	bool InputQueues();
 	bool InputOther();
 	bool OutputArrays();
 	bool OutputStringArrays();
