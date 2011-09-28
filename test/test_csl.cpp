@@ -18,11 +18,13 @@ bool TestCSL::All()
 	InputArrays();
 	InputHash();
 	InputQueues();
+	InputValArrays();
 	InputOther();
 	OutputArrays();
 	OutputStringArrays();
 	OutputHash();
 	OutputQueues();
+	OutputValArrays();
 	OutputOther();
 	return FailedCnt == 0;
 }
@@ -56,6 +58,13 @@ bool TestCSL::InputQueues()
 	stack<wstring> v2; v2.push(L"4"); v2.push(L"5"); 
 	priority_queue<char> v3; v3.push(6); v3.push(7); v3.push(8); 
 	return InputCommon("InputQueues", 0x47a2b000, Inputs(v1, v2, v3));
+}
+
+bool TestCSL::InputValArrays()
+{
+	valarray<double> v1(3); v1[0] = 1.; v1[1] = 2.; v1[2] = 3.; 
+	bitset<4> v2("0111");
+	return InputCommon("InputValArrays", 0x47a2b000, Inputs(v1, v2));
 }
 
 bool TestCSL::InputOther()
@@ -112,6 +121,16 @@ bool TestCSL::OutputQueues()
 			v1.size(), v2.size(),v3.size());
 }
 
+bool TestCSL::OutputValArrays()
+{
+	valarray<double> v1;
+	bitset<4> v2;
+	return OutputCommonStart("OutputValArrays", "return {1,2,3},{true,true,false}", 
+			Outputs(v1, v2)) &&
+		OutputCommonEnd(0x56dfd160, "%d,%d", 
+			v1.size(), v2.size());
+}
+
 bool TestCSL::OutputOther()
 {
 	pair<int, string> v1;
@@ -120,7 +139,6 @@ bool TestCSL::OutputOther()
 		OutputCommonEnd(0x56dfd160, "{%d,%s}", 
 		v1.first, v1.second.c_str());
 }
-
 
 int main(int /*argc*/, char* /*argv*/[])
 {

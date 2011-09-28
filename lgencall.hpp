@@ -22,7 +22,7 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 1.3.0
+// Version 1.3.1
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
@@ -90,6 +90,8 @@ extern "C" {
 #include <set>
 #include <queue>
 #include <stack>
+#include <valarray>
+#include <bitset>
 #endif
 
 #if LCBC_USE_MFC
@@ -140,6 +142,8 @@ public:
 	template<class T, class C> Input(const queue<T,C>& value) { pPush = &Input::PushQueue<queue<T,C> >; PointerValue = &value; }
 	template<class T, class C> Input(const stack<T,C>& value) { pPush = &Input::PushStack<stack<T,C> >; PointerValue = &value; }
 	template<class T, class C, class P> Input(const priority_queue<T,C,P>& value) { pPush = &Input::PushStack<priority_queue<T,C,P> >; PointerValue = &value; }
+	template<class T> Input(const valarray<T>& value) { pPush = &Input::PushValArray<valarray<T> >; PointerValue = &value; }
+	template<size_t N> Input(const bitset<N>& value) { pPush = &Input::PushValArray<bitset<N> >; PointerValue = &value; }
 #endif
 #if LCBC_USE_MFC
 	Input(const CStringA& value);
@@ -191,6 +195,7 @@ private:
 	template<class T> void PushMap(lua_State* L) const;
 	template<class T> void PushStack(lua_State* L) const;
 	template<class T> void PushQueue(lua_State* L) const;
+	template<class T> void PushValArray(lua_State* L) const;
 	template<class T> void PushPair(lua_State* L) const;
 	template<class T> void PushCArray(lua_State* L) const;
 	template<class T> void PushCList(lua_State* L) const;
@@ -226,6 +231,8 @@ public:
 	template<class T, class C> Output(queue<T,C>& value) { pGet = &Output::GetQueue<queue<T,C> >; PointerValue = &value; }
 	template<class T, class C> Output(stack<T,C>& value) { pGet = &Output::GetQueue<stack<T,C> >; PointerValue = &value; }
 	template<class T, class C, class P> Output(priority_queue<T,C,P>& value) { pGet = &Output::GetQueue<priority_queue<T,C,P> >; PointerValue = &value; }
+	template<class T> Output(valarray<T>& value) { pGet = &Output::GetValArray<valarray<T>,T>; PointerValue = &value; }
+	template<size_t N> Output(bitset<N>& value) { pGet = &Output::GetBitSet<bitset<N> >; PointerValue = &value; }
 #endif
 #if LCBC_USE_MFC
 	template<class T, class A> Output(CArray<T,A>& value) { pGet = &Output::GetCArray<CArray<T,A>,T>; PointerValue = &value; }
@@ -267,6 +274,8 @@ private:
 	template<class T> void GetMap(lua_State* L, int idx) const;
 	template<class T> void GetSet(lua_State* L, int idx) const;
 	template<class T> void GetQueue(lua_State* L, int idx) const;
+	template<class T, class V> void GetValArray(lua_State* L, int idx) const;
+	template<class T> void GetBitSet(lua_State* L, int idx) const;
 	template<class C, class T> void GetCArray(lua_State* L, int idx) const;
 	template<class C, class T> void GetCList(lua_State* L, int idx) const;
 	template<class T, class K, class V> void GetCMap(lua_State* L, int idx) const;
@@ -535,6 +544,19 @@ template<class T> inline void Input::PushQueue(lua_State* L) const
 	}
 }
 
+template<class T> inline void Input::PushValArray(lua_State* L) const
+{
+	const T* v = (const T*)PointerValue;
+	size_t size = v->size();
+	lua_createtable(L, size, 0);
+	for(size_t i=0;i<size;i++)
+	{
+		Input input((*v)[i]);
+		input.Push(L);
+		lua_rawseti(L, -2, i+1);
+	}
+}
+
 template<class T> inline void Output::GetPair(lua_State* L, int idx) const
 {
 	T* p = (T*)PointerValue;
@@ -627,6 +649,41 @@ template<class T> inline void Output::GetQueue(lua_State* L, int idx) const
 		Output output(value);
 		output.Get(L, top+1);
 		q->push(value);
+		lua_settop(L, top);
+	}
+}
+
+template<class T, class V> inline void Output::GetValArray(lua_State* L, int idx) const
+{
+	T* v = (T*)PointerValue;
+	luaL_checktype(L, idx, LUA_TTABLE);
+	size_t len = lua_objlen(L, idx);
+	v->resize(len);
+	int top = lua_gettop(L);
+	for(size_t i=0;i<len;i++)
+	{
+		lua_rawgeti(L, idx, (int)i+1);
+		V value;
+		Output output(value);
+		output.Get(L, top+1);
+		(*v)[i] = value;
+		lua_settop(L, top);
+	}
+}
+
+template<class T> inline void Output::GetBitSet(lua_State* L, int idx) const
+{
+	T* v = (T*)PointerValue;
+	luaL_checktype(L, idx, LUA_TTABLE);
+	size_t len = lua_objlen(L, idx);
+	int top = lua_gettop(L);
+	for(size_t i=0;i<len;i++)
+	{
+		lua_rawgeti(L, idx, (int)i+1);
+		bool value;
+		Output output(value);
+		output.Get(L, top+1);
+		(*v)[i] = value;
 		lua_settop(L, top);
 	}
 }

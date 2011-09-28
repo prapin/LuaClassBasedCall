@@ -11,10 +11,12 @@ private:
 	bool InputArrays();
 	bool InputHash();
 	bool InputQueues();
+	bool InputValArrays();
 	bool InputOther();
 	bool OutputArrays();
 	bool OutputStringArrays();
 	bool OutputHash();
 	bool OutputQueues();
+	bool OutputValArrays();
 	bool OutputOther();
 };
