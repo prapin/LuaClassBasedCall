@@ -97,8 +97,8 @@ bool TestBasicTypes::OutputOtherScalars()
 	return OutputCommonStart("OutputOtherScalars",
 			"return true, false, 'Hello', nil, 'World', io.stdin, coroutine.create(function()end), print", 
 			Outputs(bool1, bool2, str1, nil, Output(strsize, str2), Output(ptr, ptrsize), thread, fct)) &&
-		OutputCommonEnd(0x758DCF52, "{%hd,%hd,'%s',%d:'%s',%d:%d,%d}", 
-			bool1, bool2, str1, strsize, str2, sizeof(void*)-ptrsize, ptr!=NULL, thread!=NULL, fct!=NULL);
+		OutputCommonEnd(0x8BB2C9AF, "{%hd,%hd,'%s',%d:'%s',%d:%d,%d,%d}", 
+			bool1, bool2, str1, strsize, str2, ptrsize!=0, ptr!=NULL, thread!=NULL, fct!=NULL);
 }
 
 namespace lua {
