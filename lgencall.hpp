@@ -22,7 +22,7 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 1.3.1
+// Version 1.3.2
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
@@ -140,8 +140,8 @@ public:
 	template<class T, class C, class A> Input(const set<T,C,A>& value) { pPush = &Input::PushSet<set<T,C,A> >; PointerValue = &value; }
 	template<class T, class C, class A> Input(const multiset<T,C,A>& value) { pPush = &Input::PushSet<multiset<T,C,A> >; PointerValue = &value; }
 	template<class T, class C> Input(const queue<T,C>& value) { pPush = &Input::PushQueue<queue<T,C> >; PointerValue = &value; }
-	template<class T, class C> Input(const stack<T,C>& value) { pPush = &Input::PushStack<stack<T,C> >; PointerValue = &value; }
-	template<class T, class C, class P> Input(const priority_queue<T,C,P>& value) { pPush = &Input::PushStack<priority_queue<T,C,P> >; PointerValue = &value; }
+	template<class T, class C> Input(const stack<T,C>& value) { pPush = &Input::PushQueue<stack<T,C> >; PointerValue = &value; }
+	template<class T, class C, class P> Input(const priority_queue<T,C,P>& value) { pPush = &Input::PushQueue<priority_queue<T,C,P> >; PointerValue = &value; }
 	template<class T> Input(const valarray<T>& value) { pPush = &Input::PushValArray<valarray<T> >; PointerValue = &value; }
 	template<size_t N> Input(const bitset<N>& value) { pPush = &Input::PushValArray<bitset<N> >; PointerValue = &value; }
 #endif
@@ -190,10 +190,10 @@ private:
 	template<class T> void PushSizedValue(lua_State* L) const;
 	template<class T> void PushArray(lua_State* L) const;
 	template<class T, size_t L2> void Push2DArray(lua_State* L) const;
-	template<class T> void PushContainer(lua_State* L) const;
+	template<class T> void PushContainer(lua_State* L, const T* val) const;
+	template<class T> void PushContainer(lua_State* L) const { return PushContainer(L, (const T*)PointerValue); }
 	template<class T> void PushSet(lua_State* L) const;
 	template<class T> void PushMap(lua_State* L) const;
-	template<class T> void PushStack(lua_State* L) const;
 	template<class T> void PushQueue(lua_State* L) const;
 	template<class T> void PushValArray(lua_State* L) const;
 	template<class T> void PushPair(lua_State* L) const;
@@ -446,6 +446,14 @@ template<> inline void Output::GetSizedValue<wchar_t>(lua_State* L, int idx) con
 }
 
 #if LCBC_USE_CSL
+// This class is a hack to access the container member in adapters!
+template<class T> class myqueue : public T
+{
+public:
+	myqueue(const T& src) : T(src) {}
+	typename T::container_type& get_container() { return c; }
+};
+
 template<class T> inline void Input::PushPair(lua_State* L) const
 {
 	const T* p = (const T*)PointerValue;
@@ -473,9 +481,8 @@ template<class T> inline void Input::PushMap(lua_State* L) const
 	}
 }
 
-template<class T> inline void Input::PushContainer(lua_State* L) const
+template<class T> inline void Input::PushContainer(lua_State* L, const T* v) const
 {
-	const T* v = (const T*)PointerValue;
 	lua_createtable(L, (int)v->size(), 0);
 	typename T::const_iterator it;
 	int i=0;
@@ -514,34 +521,12 @@ inline Input::Input(const string& value)
 	PointerValue = &value; 
 }
 
-template<class T> inline void Input::PushStack(lua_State* L) const
-{
-	const T* q = (const T*)PointerValue;
-	lua_createtable(L, (int)q->size(), 0);
-	T copy(*q);
-	int i=0;
-	while(!copy.empty())
-	{
-		Input input(copy.top());
-		input.Push(L);
-		lua_rawseti(L, -2, ++i);
-		copy.pop();
-	}
-}
-
 template<class T> inline void Input::PushQueue(lua_State* L) const
 {
 	const T* q = (const T*)PointerValue;
-	lua_createtable(L, (int)q->size(), 0);
-	T copy(*q);
-	int i=0;
-	while(!copy.empty())
-	{
-		Input input(copy.front());
-		input.Push(L);
-		lua_rawseti(L, -2, ++i);
-		copy.pop();
-	}
+	myqueue<T> copy(*q);
+	typename T::container_type& c = copy.get_container();
+	PushContainer(L, &c);
 }
 
 template<class T> inline void Input::PushValArray(lua_State* L) const
