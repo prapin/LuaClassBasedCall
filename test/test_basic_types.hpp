@@ -3,7 +3,7 @@
 class TestBasicTypes : public Test
 {
 public:
-	TestBasicTypes(bool verbose) : Test(verbose) {}
+	TestBasicTypes(int argc, const PSTRING argv[]) : Test(argc, argv) {}
 	virtual bool All();
 
 	struct tMessage

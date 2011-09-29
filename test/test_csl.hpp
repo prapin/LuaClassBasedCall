@@ -3,7 +3,7 @@
 class TestCSL : public Test
 {
 public:
-	TestCSL(bool verbose) : Test(verbose) {}
+	TestCSL(int argc, const PSTRING argv[]) : Test(argc, argv) {}
 	virtual bool All();
 
 private:

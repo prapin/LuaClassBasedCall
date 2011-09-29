@@ -1,10 +1,12 @@
 #include "test.hpp"
 
-Test::Test(bool fverbose)
-:	fVerbose(fverbose),
+Test::Test(int argc, const PSTRING argv[])
+:	fVerbose(false),
 	PassedCnt(0),
 	FailedCnt(0)
 {
+	if(argc == 2 && strcmp(argv[1], "-v") == 0)
+		fVerbose = true;
 	MakeCrcTable();
 	Report("Loading DataDumper", Lua.PCall("@dumper.lua"));
 }

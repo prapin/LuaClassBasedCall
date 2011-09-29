@@ -6,7 +6,7 @@ typedef const char* PSTRING;
 class Test
 {
 public:
-	Test(bool fverbose);
+	Test(int argc, const PSTRING argv[]);
 	virtual bool All() = 0;
 protected:
 	bool Report(bool result, PSTRING test_name, PSTRING error_msg, PSTRING test_msg=NULL);

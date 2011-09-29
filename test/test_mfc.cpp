@@ -200,9 +200,9 @@ bool TestMFC::Serialization()
 	return res;
 }
 
-int main(int /*argc*/, char* /*argv*/[])
+int main(int argc, const PSTRING argv[])
 {
-	TestMFC test(true);
+	TestMFC test(argc, argv);
 	return test.All() ? 0 : 1;
 }
 

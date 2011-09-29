@@ -134,9 +134,9 @@ bool TestBasicTypes::OutputArrays()
 			arr3DLen, arr3D[0][0][0], arr3D[0][0][1], arr3D[1][0][0], arr3D[1][0][1]);
 }
 
-int main(int /*argc*/, char* /*argv*/[])
+int main(int argc, const PSTRING argv[])
 {
-	TestBasicTypes test(false);
+	TestBasicTypes test(argc, argv);
 	return test.All() ? 0 : 1;
 }
 

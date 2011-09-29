@@ -186,9 +186,9 @@ bool TestCSL::OutputOther()
 		OutputCommonEnd(0x78D74F8B, "%s", dump(v1).c_str());
 }
 
-int main(int /*argc*/, char* /*argv*/[])
+int main(int argc, const PSTRING argv[])
 {
-	TestCSL test(true);
+	TestCSL test(argc, argv);
 	return test.All() ? 0 : 1;
 }
 

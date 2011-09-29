@@ -3,7 +3,7 @@
 class TestMFC : public Test
 {
 public:
-	TestMFC(bool verbose) : Test(verbose) {}
+	TestMFC(int argc, const PSTRING argv[]) : Test(argc, argv) {}
 	virtual bool All();
 
 private:
