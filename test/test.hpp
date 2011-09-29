@@ -21,7 +21,7 @@ protected:
 	lua::Lua Lua;
 	PSTRING LastTestName;
 	uint32_t CrcTable[256];
-	bool fVerbose;	
+	uint8_t Verbosity;
 	uint16_t PassedCnt;
 	uint16_t FailedCnt;
 };

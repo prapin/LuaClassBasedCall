@@ -1,31 +1,38 @@
 #include "test.hpp"
 
 Test::Test(int argc, const PSTRING argv[])
-:	fVerbose(false),
+:	Verbosity(1),
 	PassedCnt(0),
 	FailedCnt(0)
 {
-	if(argc == 2 && strcmp(argv[1], "-v") == 0)
-		fVerbose = true;
+	for(int i=1;i<argc;i++)
+	{
+		if(strcmp(argv[i], "-v") == 0)
+			Verbosity++;
+		if(strcmp(argv[i], "-q") == 0)
+			Verbosity--;
+	}
 	MakeCrcTable();
 	Report("Loading DataDumper", Lua.PCall("@dumper.lua"));
 }
 
 bool Test::Report(bool result, PSTRING test_name, PSTRING error_msg, PSTRING test_msg)
 {
-	if(error_msg == NULL || !fVerbose)
+	if(error_msg == NULL || Verbosity < 2)
 		error_msg = "";
-	if(test_msg == NULL || !fVerbose)
+	if(test_msg == NULL ||  Verbosity < 2)
 		test_msg = "";
 	if(result)
 	{
 		PassedCnt++;
-		printf("[PASSED] %s %s\n", test_name, test_msg);
+		if(Verbosity)
+			printf("[PASSED] %s %s\n", test_name, test_msg);
 	}
 	else
 	{
 		FailedCnt++;
-		printf("[FAILED] %s %s %s\n", test_name, error_msg, test_msg);
+		if(Verbosity)
+			printf("[FAILED] %s %s %s\n", test_name, error_msg, test_msg);
 	}
 	return result;
 }
