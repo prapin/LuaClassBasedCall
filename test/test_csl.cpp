@@ -43,6 +43,7 @@ template<class S, class T, class A> S& operator<< (S& out, const vector<T,A>& va
 template<class S, class T, class A> S& operator<< (S& out, const list<T,A>& val) { return serialize(out, val); }
 template<class S, class T, class A> S& operator<< (S& out, const deque<T,A>& val) { return serialize(out, val); }
 template<class S, class K, class T, class C, class A> S& operator<< (S& out, const map<K,T,C,A>& val) { return serialize(out, val); }
+template<class S, class K, class T, class C, class A> S& operator<< (S& out, const multimap<K,T,C,A>& val) { return serialize(out, val); }
 template<class S, class T, class C, class A> S& operator<< (S& out, const set<T,C,A>& val) { return serialize(out, val); }
 template<class S, class T, class C, class A> S& operator<< (S& out, const multiset<T,C,A>& val) { return serialize(out, val); }
 template<class S, class T, class C> S& operator<< (S& out, const stack<T,C>& val) { return serialize_queue(out, val); }
@@ -98,8 +99,9 @@ bool TestCSL::InputHash()
 {
 	map<const char*,int > v1; v1["s1"]=1;
 	set<float, greater<float>, allocator<float> > v2; v2.insert(2.5f), v2.insert(9.5f);
-	multiset<short> v3; v3.insert(1); v3.insert(2); v3.insert(1); 
-	return InputCommon("InputHash", 0x3C9AF133, Inputs(v1, v2, v3));
+	multiset<short> v3; v3.insert(1); v3.insert(2); v3.insert(1);
+	multimap<char, double> v4; for(int i=0;i<5;i++) v4.insert(pair<char, double>("Hello"[i],i+1)); 
+	return InputCommon("InputHash", 0xC1CAA15E, Inputs(v1, v2, v3, v4));
 }
 
 bool TestCSL::InputQueues()
@@ -151,10 +153,11 @@ bool TestCSL::OutputHash()
 	map<const char*,int> v1;
 	set<float> v2;
 	multiset<short> v3;
-	return OutputCommonStart("OutputHash", "return {S1=2,S2=1},{1,1},{3,2}", 
-			Outputs(v1, v2, v3)) &&
-		OutputCommonEnd(0x236A0DF0, "%s,%s,%s", 
-			dump(v1).c_str(), dump(v2).c_str(), dump(v3).c_str());
+	multimap<char, double> v4;
+	return OutputCommonStart("OutputHash", "return {S1=2,S2=1},{1,1},{3,2},{{65,5},{66,1},{66,2}}", 
+			Outputs(v1, v2, v3, v4)) &&
+		OutputCommonEnd(0x8D6A6FB6, "%s,%s,%s,%s", 
+			dump(v1).c_str(), dump(v2).c_str(), dump(v3).c_str(), dump(v4).c_str());
 }
 
 bool TestCSL::OutputQueues()

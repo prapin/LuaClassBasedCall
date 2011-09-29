@@ -22,7 +22,7 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 1.3.2
+// Version 1.3.3
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
@@ -137,6 +137,7 @@ public:
 	template<class T, class A> Input(const list<T,A>& value) { pPush = &Input::PushContainer<list<T,A> >; PointerValue = &value; }
 	template<class T, class A> Input(const deque<T,A>& value) { pPush = &Input::PushContainer<deque<T,A> >; PointerValue = &value; }
 	template<class K, class T, class C, class A> Input(const map<K,T,C,A>& value) { pPush = &Input::PushMap<map<K,T,C,A> >; PointerValue = &value; }
+	template<class K, class T, class C, class A> Input(const multimap<K,T,C,A>& value) { pPush = &Input::PushContainer<multimap<K,T,C,A> >; PointerValue = &value; }
 	template<class T, class C, class A> Input(const set<T,C,A>& value) { pPush = &Input::PushSet<set<T,C,A> >; PointerValue = &value; }
 	template<class T, class C, class A> Input(const multiset<T,C,A>& value) { pPush = &Input::PushSet<multiset<T,C,A> >; PointerValue = &value; }
 	template<class T, class C> Input(const queue<T,C>& value) { pPush = &Input::PushQueue<queue<T,C> >; PointerValue = &value; }
@@ -226,6 +227,7 @@ public:
 	template<class T, class A> Output(list<T,A>& value) { pGet = &Output::GetContainer<list<T,A> >; PointerValue = &value; }
 	template<class T, class A> Output(deque<T,A>& value) { pGet = &Output::GetContainer<deque<T,A> >; PointerValue = &value; }
 	template<class K, class T, class C, class A> Output(map<K,T,C,A>& value) { pGet = &Output::GetMap<map<K,T,C,A> >; PointerValue = &value; }
+	template<class K, class T, class C, class A> Output(multimap<K,T,C,A>& value) { pGet = &Output::GetMultiMap<multimap<K,T,C,A> >; PointerValue = &value; }
 	template<class T, class C, class A> Output(set<T,C,A>& value) { pGet = &Output::GetSet<set<T,C,A> >; PointerValue = &value; }
 	template<class T, class C, class A> Output(multiset<T,C,A>& value) { pGet = &Output::GetSet<multiset<T,C,A> >; PointerValue = &value; }
 	template<class T, class C> Output(queue<T,C>& value) { pGet = &Output::GetQueue<queue<T,C> >; PointerValue = &value; }
@@ -271,6 +273,7 @@ private:
 	template<class T, size_t L2> void Get2DArray(lua_State* L, int idx) const;
 	template<class T> void GetPair(lua_State* L, int idx) const;
 	template<class T> void GetContainer(lua_State* L, int idx) const;
+	template<class T> void GetMultiMap(lua_State* L, int idx) const;
 	template<class T> void GetMap(lua_State* L, int idx) const;
 	template<class T> void GetSet(lua_State* L, int idx) const;
 	template<class T> void GetQueue(lua_State* L, int idx) const;
@@ -580,6 +583,22 @@ template<class T> inline void Output::GetContainer(lua_State* L, int idx) const
 	}
 }
 
+template<class T> inline void Output::GetMultiMap(lua_State* L, int idx) const
+{
+	T* v = (T*)PointerValue;
+	luaL_checktype(L, idx, LUA_TTABLE);
+	size_t len = lua_objlen(L, idx);
+	int top = lua_gettop(L);
+	for(size_t i=0;i<len;i++)
+	{
+		lua_rawgeti(L, idx, (int)i+1);
+		pair<typename T::key_type, typename T::mapped_type> value;
+		Output output(value);
+		output.Get(L, top+1);
+		v->insert(value);
+		lua_settop(L, top);
+	}
+}
 template<class T> inline void Output::GetSet(lua_State* L, int idx) const
 {
 	T* s = (T*)PointerValue;
