@@ -22,7 +22,7 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 1.3.3
+// Version 1.3.4
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
@@ -38,11 +38,15 @@
 #define LCBC_USE_WIDESTRING 3
 #endif
 
-/* LCBC_USE_CSL defines if some features of the C++ Standard Library
-   should be supported. The supported classes used are string, wstring, 
-   vector<T>, map<K,T>, list<T> and set<T>.
+/* LCBC_USE_CSL defines if data containers and some other classes from the 
+   C++ Standard Library should be handled. The supported classes are :
+   - string, wstring
+   - vector<T>, map<K,T>, list<T>, set<T>, deque<T>, multiset<T>, multimap<K,T>
+   - queue<T,C>, priority_queue<T,C>, stack<T,C>
+   - pair<T1,T2>, valarray<T>, bitset<N>
    0: no support
-   1: C++ Standard Library classes can be used in the calls. */
+   1: C++ Standard Library data can be exchanged with Lua. 
+*/
 #ifndef LCBC_USE_CSL
 #define LCBC_USE_CSL 0
 #endif
@@ -57,6 +61,8 @@
    - CMap<K,AK,V,AV>, CTypedPtrMap<B,K,V>, CMapWordToPtr, CMapPtrToWord, 
      CMapPtrToPtr, CMapWordToOb, CMapStringToPtr, CMapStringToOb, CMapStringToString
    - CPoint, CRect, CSize, CTime, CTimeSpan
+   0: no support
+   1: Microsoft Foundation Classes data can be exchanged with Lua 
 */
 #ifndef LCBC_USE_MFC
 #define LCBC_USE_MFC 0
@@ -121,6 +127,8 @@ class Input
 public:
 	Input(eNil) { pPush = &Input::PushNil; }
 	Input(bool value) { pPush = &Input::PushBoolean; BooleanValue = value; }
+	Input(char value) { pPush = &Input::PushCharacter; CharacterValue = value; }
+	Input(wchar_t value) { pPush = &Input::PushWideChar; WideCharValue = value; }
 	Input(lua_CFunction value) { pPush = &Input::PushFunction; FunctionValue = value; Size = 0;}
 	Input(lua_CFunction value, size_t len) { pPush = &Input::PushFunction; FunctionValue = value; Size=len; }
 	template<class T> Input(T value) { pPush = &Input::PushNumber; NumberValue = (lua_Number)value; }
@@ -184,6 +192,8 @@ public:
 private:
 	void PushNil(lua_State* L) const { lua_pushnil(L); }
 	void PushBoolean(lua_State* L) const { lua_pushboolean(L, BooleanValue); }
+	void PushCharacter(lua_State* L) const { lua_pushlstring(L, &CharacterValue, 1); }
+	void PushWideChar(lua_State* L) const { PushWideString(L, &WideCharValue, 1); }
 	void PushNumber(lua_State* L) const { lua_pushnumber(L, NumberValue); }
 	void PushFunction(lua_State* L) const { lua_pushcclosure(L, FunctionValue, (int)Size); }
 	template<class T> void PushNumber(lua_State* L) const { lua_pushnumber(L, lua_Number(*(T*)PointerValue)); }
@@ -206,6 +216,8 @@ private:
 	union 
 	{
 		bool BooleanValue;
+		char CharacterValue;
+		wchar_t WideCharValue;
 		lua_Number NumberValue;
 		const void* PointerValue;
 		lua_CFunction FunctionValue;
@@ -349,6 +361,24 @@ template<> inline void Output::GetValue<bool>(lua_State* L, int idx) const
 	*(bool*)PointerValue = lua_toboolean(L, idx) != 0;
 }
 
+template<> inline void Output::GetValue<char>(lua_State* L, int idx) const
+{
+	size_t len;
+	const char* str = luaL_checklstring(L, idx, &len);
+	if(len != 1)
+		luaL_error(L, "String length must be 1 for char type but is %d bytes", len);
+	*(char*)PointerValue = *str;
+}
+
+template<> inline void Output::GetValue<wchar_t>(lua_State* L, int idx) const
+{
+	size_t len;
+	const wchar_t* str = ToWideString(L, idx, &len);
+	if(len != 1)
+		luaL_error(L, "String length must be 1 for wchar_t type but is %d characters", len);
+	*(wchar_t*)PointerValue = *str;
+}
+
 template<> inline void Output::GetValue<const char*>(lua_State* L, int idx) const
 {
 	*(const char**)PointerValue = luaL_checklstring(L, idx, NULL);
@@ -454,7 +484,7 @@ template<class T> class myqueue : public T
 {
 public:
 	myqueue(const T& src) : T(src) {}
-	typename T::container_type& get_container() { return c; }
+	typename T::container_type& get_container() { return this->c; }
 };
 
 template<class T> inline void Input::PushPair(lua_State* L) const

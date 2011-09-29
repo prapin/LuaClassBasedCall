@@ -70,7 +70,7 @@ bool TestBasicTypes::InputArrays()
 	static int16_t arr1D[4] = { 1,2,3,4 };
 	static uint32_t arr2D[2][3] = {{11,12,13},{21,22,23}};
 	static uint8_t arr3D[2][1][2] = {{{111,112}},{{211,212}}};
-	return InputCommon("InputArrays", 0xD91C706D, Inputs(Input(5, "Hello"), Input(7, L"World !"),
+	return InputCommon("InputArrays", 0xAD3D7DA8, Inputs(Input(5, "Hello"), Input(7, L"World !"),
 		Input(countof(arr1D), arr1D), Input(countof(arr2D), arr2D), Input(countof(arr3D), arr3D)));
 }
 

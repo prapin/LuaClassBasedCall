@@ -91,8 +91,8 @@ bool TestCSL::InputArrays()
 {
 	vector<const char*> v1; v1.push_back("s7"); v1.push_back("s8"); 
 	list<const wchar_t*, allocator<const wchar_t*> > v2; v2.push_back(L"s9"); v2.push_back(L"s10"); 
-	deque<int> v3; v3.push_back(8);
-	return InputCommon("InputArrays", 0xB78354A0, Inputs(v1, v2, v3));
+	deque<wchar_t> v3; v3.push_back(L'B'); v3.push_back(L'a'); v3.push_back(L'z');
+	return InputCommon("InputArrays", 0xA3AD612F, Inputs(v1, v2, v3));
 }
 
 bool TestCSL::InputHash()
@@ -101,21 +101,21 @@ bool TestCSL::InputHash()
 	set<float, greater<float>, allocator<float> > v2; v2.insert(2.5f), v2.insert(9.5f);
 	multiset<short> v3; v3.insert(1); v3.insert(2); v3.insert(1);
 	multimap<char, double> v4; for(int i=0;i<5;i++) v4.insert(pair<char, double>("Hello"[i],i+1)); 
-	return InputCommon("InputHash", 0xC1CAA15E, Inputs(v1, v2, v3, v4));
+	return InputCommon("InputHash", 0xB76D39D4, Inputs(v1, v2, v3, v4));
 }
 
 bool TestCSL::InputQueues()
 {
 	queue<int> v1; v1.push(1); v1.push(2); v1.push(3); 
 	stack<wstring> v2; v2.push(L"4"); v2.push(L"5"); 
-	priority_queue<char> v3; v3.push(6); v3.push(7); v3.push(8); 
-	return InputCommon("InputQueues", 0x7F233DC1, Inputs(v1, v2, v3));
+	priority_queue<char> v3; v3.push('B'); v3.push('A'); v3.push('R'); 
+	return InputCommon("InputQueues", 0x16D7731E, Inputs(v1, v2, v3));
 }
 
 bool TestCSL::InputValArrays()
 {
 	valarray<double> v1(3); v1[0] = 1.; v1[1] = 2.; v1[2] = 3.; 
-	bitset<4> v2("0111");
+	bitset<4> v2(string("0111"));
 	return InputCommon("InputValArrays", 0x9E641961, Inputs(v1, v2));
 }
 
@@ -130,7 +130,7 @@ bool TestCSL::OutputArrays()
 	vector<short> v1;
 	list<char> v2; 
 	deque<double> v3;
-	return OutputCommonStart("OutputArrays", "return {1,2,3,4},{72,101,108,108,111},{8,9}", 
+	return OutputCommonStart("OutputArrays", "return {1,2,3,4},{'H','e','l','l','o'},{8,9}", 
 			Outputs(v1, v2, v3)) &&
 		OutputCommonEnd(0xE6715D8A, "%s,%s,%s", 
 			dump(v1).c_str(), dump(v2).c_str(), dump(v3).c_str());
@@ -154,7 +154,7 @@ bool TestCSL::OutputHash()
 	set<float> v2;
 	multiset<short> v3;
 	multimap<char, double> v4;
-	return OutputCommonStart("OutputHash", "return {S1=2,S2=1},{1,1},{3,2},{{65,5},{66,1},{66,2}}", 
+	return OutputCommonStart("OutputHash", "return {S1=2,S2=1},{1,1},{3,2},{{'A',5},{'B',1},{'B',2}}", 
 			Outputs(v1, v2, v3, v4)) &&
 		OutputCommonEnd(0x8D6A6FB6, "%s,%s,%s,%s", 
 			dump(v1).c_str(), dump(v2).c_str(), dump(v3).c_str(), dump(v4).c_str());
@@ -164,11 +164,11 @@ bool TestCSL::OutputQueues()
 {
 	queue<int> v1; 
 	stack<wstring> v2;
-	priority_queue<char> v3;
-	return OutputCommonStart("OutputQueues", "return {1,2,3},{4,5},{65,66,67}", 
+	priority_queue<wchar_t> v3;
+	return OutputCommonStart("OutputQueues", "return {1,2,3},{4,5},{'A','B','C'}", 
 			Outputs(v1, v2, v3)) &&
-		OutputCommonEnd(0x1C41A0E3, "%s,%S,%s", 
-			dump(v1).c_str(), wdump(v2).c_str(), dump(v3).c_str());
+		OutputCommonEnd(0x1C41A0E3, "%s,%S,%S", 
+			dump(v1).c_str(), wdump(v2).c_str(), wdump(v3).c_str());
 }
 
 bool TestCSL::OutputValArrays()
