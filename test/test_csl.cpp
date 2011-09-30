@@ -84,7 +84,7 @@ bool TestCSL::InputStrings()
 {
 	string s1("P2\0P3", 5);
 	wstring s2(L"P4\0P5", 5);
-	return InputCommon("InputStrings", 0xF2D178B0, Inputs(s1, s2));
+	return InputCommon("InputStrings", 0xD110B8B8, Inputs(s1, s2));
 }
 
 bool TestCSL::InputArrays()

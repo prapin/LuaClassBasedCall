@@ -1418,6 +1418,7 @@ inline void Input::PushWideString(lua_State* L, const wchar_t* wstr, size_t len)
 
 inline const wchar_t* Output::ToWideString(lua_State* L, int idx, size_t* psize)
 {
+	static const unsigned int min_value[] = {0xFFFFFFFF, 0x80, 0x800, 0x10000, 0x200000, 0xFFFFFFFF, 0xFFFFFFFF};
 	luaL_Buffer b;
 	int i,mask;
 	unsigned int value;
@@ -1435,9 +1436,8 @@ inline const wchar_t* Output::ToWideString(lua_State* L, int idx, size_t* psize)
 		else
 		{
 			for(i=1,mask=0x40;car & mask;i++,mask>>=1) ;
+			int len = i;
 			value = car & (mask - 1);
-			if(i == 1 || (value == 0 && (*str & 0x3F) < (0x100 >> i)))
-				luaL_error(L, "overlong character in UTF-8");
 			for(;i>1;i--)
 			{
 				car = *str++;
@@ -1445,6 +1445,8 @@ inline const wchar_t* Output::ToWideString(lua_State* L, int idx, size_t* psize)
 					luaL_error(L, "invalid UTF-8 string");
 				value = (value << 6) | (car & 0x3F);
 			}
+			if(value < min_value[len-1])
+				luaL_error(L, "overlong character in UTF-8");
 		}
 		// For UTF-16, generate surrogate pair outside BMP 
 		if(sizeof(wchar_t) == 2 && value >= 0x10000)

@@ -19,8 +19,7 @@ function DataDumper(value)
   local dumplua
   local keycache, out = {}, {}
   function quote(value)
-    value = value:gsub("([%z\1-\31])([0-9])", function(a,b) return ("\\%03d%s"):format(a:byte(),b) end)
-	value = value:gsub("([%z\1-\31])", function(a) return ("\\%d"):format(a:byte()) end)
+	value = value:gsub("([%z\1-\31\128-\255])", function(a) return ("\\%02X"):format(a:byte()) end)
     return '"'..value..'"'
   end
   local fcts = {

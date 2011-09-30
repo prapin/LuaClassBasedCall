@@ -39,7 +39,7 @@ bool TestMFC::InputStrings()
 {
 	CStringA s1("P2\0P3", 5);
 	CStringW s2(L"P4\0P5", 5);
-	return InputCommon("InputStrings", 0xF2D178B0, Inputs(s1, s2));
+	return InputCommon("InputStrings", 0xD110B8B8, Inputs(s1, s2));
 }
 
 bool TestMFC::InputArrays()
