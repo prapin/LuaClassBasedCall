@@ -6,7 +6,7 @@
 
 #define _CRT_SECURE_NO_WARNINGS
 #include "lgencall.hpp"
-#include "test.cpp"
+#include "test.hpp"
 #include "test_basic_types.hpp"
 
 using namespace lua;

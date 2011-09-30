@@ -6,7 +6,7 @@
 
 #define _CRT_SECURE_NO_WARNINGS
 #include "lgencall.hpp"
-#include "test.cpp"
+#include "test.hpp"
 #include "test_csl.hpp"
 #include <iostream>
 #include <sstream>
@@ -154,9 +154,9 @@ bool TestCSL::OutputHash()
 	set<float> v2;
 	multiset<short> v3;
 	multimap<char, double> v4;
-	return OutputCommonStart("OutputHash", "return {S1=2,S2=1},{1,1},{3,2},{{'A',5},{'B',1},{'B',2}}", 
+	return OutputCommonStart("OutputHash", "return {S1=2},{1,1},{3,2},{{'A',5},{'B',1},{'B',2}}", 
 			Outputs(v1, v2, v3, v4)) &&
-		OutputCommonEnd(0x8D6A6FB6, "%s,%s,%s,%s", 
+		OutputCommonEnd(0xd319da2d, "%s,%s,%s,%s", 
 			dump(v1).c_str(), dump(v2).c_str(), dump(v3).c_str(), dump(v4).c_str());
 }
 
