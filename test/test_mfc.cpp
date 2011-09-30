@@ -12,6 +12,12 @@
 using namespace lua;
 using namespace std;
 
+#ifdef UNICODE
+#define UNICODE_FMT "%S"
+#else 
+#define UNICODE_FMT "%s"
+#endif
+
 bool TestMFC::All()
 {
 	InputStrings();
@@ -33,7 +39,7 @@ bool TestMFC::InputStrings()
 {
 	CStringA s1("P2\0P3", 5);
 	CStringW s2(L"P4\0P5", 5);
-	return InputCommon("InputStrings", 0xc207dadc, Inputs(s1, s2));
+	return InputCommon("InputStrings", 0xF2D178B0, Inputs(s1, s2));
 }
 
 bool TestMFC::InputArrays()
@@ -81,7 +87,7 @@ bool TestMFC::InputMaps()
 	CMapStringToString v8; v8.SetAt(_T("Foo"), _T("Bar"));
 	CTypedPtrMap<CMapWordToPtr, WORD, char*> v9; v9.SetAt(9, "baz");
 
-	return InputCommon("InputMaps", 0x0E41F73E, Inputs(v1, v2, v3, v4, v5, v6, v7, v8, v9));
+	return InputCommon("InputMaps", 0xEC45986E, Inputs(v1, v2, v3, v4, v5, v6, v7, v8, v9));
 }
 
 bool TestMFC::InputSimpleValues()
@@ -91,7 +97,7 @@ bool TestMFC::InputSimpleValues()
 	CSize v3(7,8);
 	CTime v4(9);
 	CTimeSpan v5(10);
-	return InputCommon("InputSimpleValues", 0xF4EB9FC9, Inputs(v1, v2, v3, v4, v5));
+	return InputCommon("InputSimpleValues", 0x3369AE45, Inputs(v1, v2, v3, v4, v5));
 }
 namespace lua {
 template<> void Output::GetValue<char*>(lua_State* L, int idx) const
@@ -128,14 +134,14 @@ bool TestMFC::OutputStringArrays()
 	CArray<CStringA> str3;
 	CArray<CStringW> str4;
 	CStringArray str5;
-	return OutputCommonStart("OutputStringArrays", "return {1,2,3},{44,55,66},{10,9,8,7},{6,5},{4,3}",
+	return OutputCommonStart("OutputStringArrays", "return {1,2,3},{44,55,66},{10,9,8,7},{6,5},{42,33}",
 			Outputs(str1, str2, str3, str4, str5)) &&
-		OutputCommonEnd(0xDA0F9DEB, "%d:{%s,%s,%s},%d:{%S,%S,%S},%d:{%s,%s,%s,%s},%d:{%S,%S},%d:{%c,%c}",
+		OutputCommonEnd(0x256A1878, "%d:{%s,%s,%s},%d:{%S,%S,%S},%d:{%s,%s,%s,%s},%d:{%S,%S},%d:{" UNICODE_FMT "}",
 			str1.GetSize(), str1[0], str1[1], str1[2],
 			str2.GetSize(), str2[0], str2[1], str2[2],
 			str3.GetSize(), str3[0], str3[1], str3[2], str3[3],
 			str4.GetSize(), str4[0], str4[1],
-			str5.GetSize(), str5[0][0], str5[1][0]);
+			str5.GetSize(), str5[0], str5[1]);
 }
 
 bool TestMFC::OutputLists()
@@ -147,7 +153,7 @@ bool TestMFC::OutputLists()
 	CTypedPtrList<CPtrList, char*> v5;
 	return OutputCommonStart("OutputLists", "return {1,2,3,4},{io.stdin},{},{'Hello'},{'World'}", 
 			Outputs(v1, v2, v3, v4, v5)) &&
-		OutputCommonEnd(0x3772EACE, "%d:{%d,...},%d:{%d},%d:{},%d:{%S},%d:{%s}", 
+		OutputCommonEnd(0x3772EACE, "%d:{%d,...},%d:{%d},%d:{},%d:{" UNICODE_FMT "},%d:{%s}", 
 			v1.GetCount(), v1.GetHead(), 
 			v2.GetCount(), v2.GetHead() != NULL,
 			v3.GetCount(),  

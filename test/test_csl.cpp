@@ -84,7 +84,7 @@ bool TestCSL::InputStrings()
 {
 	string s1("P2\0P3", 5);
 	wstring s2(L"P4\0P5", 5);
-	return InputCommon("InputStrings", 0xc207dadc, Inputs(s1, s2));
+	return InputCommon("InputStrings", 0xF2D178B0, Inputs(s1, s2));
 }
 
 bool TestCSL::InputArrays()
@@ -101,7 +101,7 @@ bool TestCSL::InputHash()
 	set<float, greater<float>, allocator<float> > v2; v2.insert(2.5f), v2.insert(9.5f);
 	multiset<short> v3; v3.insert(1); v3.insert(2); v3.insert(1);
 	multimap<char, double> v4; for(int i=0;i<5;i++) v4.insert(pair<char, double>("Hello"[i],i+1)); 
-	return InputCommon("InputHash", 0xB76D39D4, Inputs(v1, v2, v3, v4));
+	return InputCommon("InputHash", 0x95DB9AC5, Inputs(v1, v2, v3, v4));
 }
 
 bool TestCSL::InputQueues()

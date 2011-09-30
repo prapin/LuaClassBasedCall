@@ -60,7 +60,7 @@ uint32_t Test::ComputeCrc(const uint8_t* buf, size_t len)
 bool Test::InputCommon(PSTRING testname, uint32_t crc_ref, const lua::Inputs& inputs)
 {
 	PSTRING error, dump;
-	error = Lua.PCall("return DataDumper({...}, '', true)", inputs, lua::Outputs(dump));
+	error = Lua.PCall("return DataDumper{...}", inputs, lua::Outputs(dump));
 	if(error)
 		return Report(testname, error);
 	uint32_t crc = ComputeCrc((const uint8_t*)dump, strlen(dump));
