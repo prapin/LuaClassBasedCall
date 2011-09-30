@@ -8,6 +8,5 @@ public:
 
 private:
 	bool InputStrings();
-	bool OutputNumbers();
 	bool OverLongUTF8();
 };

@@ -6,21 +6,40 @@ Introduction
 
 This library aims to perform generic calls to Lua through code snippets, passing any kind of arguments 
 and retrieving all types of results.
-It has the same goal as [`LuaGenericCall`](https://github.com/prapin/LuaGenericCall),
+It has the same goal as [_LuaGenericCall_](https://github.com/prapin/LuaGenericCall),
 but with a completely different implementation. 
+It is easier to use, because there is no more the complex `format` string,
+supports many more data types, is more expandable and is now type-safe. The drawback is that
+it can only be used in the C++ language.
 
 It mainly uses overloaded class constructors and templates to deal with
-a lot of different data types. The binding takes place in a single C++ header file,
+a lot of different variable types. The binding takes place in a single C++ header file,
 with all functions declared as `inline`.
 
-The introduction example of `LuaGenericCall`, performing a simple multiplication and returning
+The introduction example of _LuaGenericCall_, performing a simple multiplication and returning
 the result or a possible error message, becomes:
 
 	double result;
 	const char* errmsg = L.PCall("local a,b = ...; return a*b", Inputs(3, 2.5), Outputs(result));
 
-Compared to the original C version, there is no more the difficult-to-use `format` string,
-but you now have to explicitly specify  what are the input and output arguments.
+Just compare this short code with the original implementation using only plain Lua API:
+
+	const char* errmsg = NULL;
+	double result;
+	lua_settop(L, 0);
+	if(luaL_loadstring(L, "local a,b = ...; return a*b"))
+	  errmsg = lua_tostring(L, -1);
+	else
+	{
+	  lua_pushinteger(L, 3);
+	  lua_pushnumber(L, 2.5);
+	  if(lua_pcall(L, 2, 1, 0))
+		errmsg = lua_tostring(L, -1);
+	  else
+		result = lua_tonumber(L, -1);
+	}
+	
+
 
 The license used is MIT, like Lua itself.
 
@@ -39,33 +58,34 @@ Features
 *  Various error handling possibilities:
    1. unprotected call
    2. protected call: the function returns the error message or `NULL`
-   3. exception call: a C++ exception can be sent with the error message
+   3. exception call: a C++ exception can be thrown with the error message
 *  Compiled code snippets are cached for performance
 *  Error messages include the stack back trace 
 *  Some compilation switches can exclude unportable code or huge headers
+*  Included test suite which can also serve as usage examples
 
 ### C++ types currently handled
 *  Special enumerated `nil` value
 *  Boolean values
+*  Regular `char` and wide `wchar_t` characters
 *  All types of numerical values
 *  Regular `const char*` strings
 *  Wide character strings, automatically converted to/from UTF-8
 *  C functions having the signature `lua_CFunction`
 *  Lua threads represented as `lua_State*`
-*  Generic `const void*` pointers, mapped to light or full userdata
+*  Generic `void*` pointers, mapped to light or full userdata
 *  C arrays of any supported type: the number of elements must be
    passed to the explicit constructor as its first argument.
 *  Multidimensional C arrays (like `const int array[2][5][3]`). Only the
    first dimension (here `2`) has to be passed as the first argument.
-*  Some template classes from the C++ Standard Library. _Any_ supported
-   type can be used as template argument T or K.
-   * `string`
-   * `wstring`
-   * `vector<T>`
-   * `map<K,T>`
-   * `list<T>`
-   * `set<T>`
-*  MFC (Microsoft Foundation Classes) elements:
+*  Containers and data adapters from the C++ Standard Library. _Any_ supported
+   type can be used as template argument `T` or `K`.
+   * `string`, `wstring`
+   * `vector<T>`, `map<K,T>`, `list<T>`, `set<T>`, `deque<T>`, `multiset<T>`, `multimap<K,T>`
+   * `queue<T,C>`, `priority_queue<T,C>`, `stack<T,C>`
+   * `pair<T1,T2>`, `valarray<T>`, `bitset<N>`
+*  MFC (Microsoft Foundation Classes) elements. Again, `T` or `K` template
+   argument can be _any_ supported type.
    * `CObject*` : using (de-)serialization in a userdata
    * `CStringA`, `CStringW`
    * `CArray<T,A>`, `CTypedPtrArray<B,T>`, `CByteArray`, `CDWordArray`, 
@@ -83,7 +103,7 @@ Implementation
 
 To limit the risk of name clashes, all the library header is placed under a C++
 namespace called `lua`. It is easy to change the name of that namespace if your prefer.
-A big advantage is that we can use very generic names for library classes, 
+A big advantage here is that we can use very generic names for library classes, 
 like `Input` or `Array`, without having to bother of naming problems with other libraries.
 
 In general, you might want to include the following line either at the beginning of your C++
@@ -106,7 +126,7 @@ The header file defines the following classes:
             Like `Input`, there are also several constructor overloads, most of them
             are template ones. You can also use template specialization for your types.
 * `Array`:  This template class implement a simple array of objects. Its main particularity
-            is that is has constructors taking 0, 1, 2, 4, 8, 16 and 32 arguments, each of the
+            is that it has constructors taking 0, 1, 2, 4, 8, 16 and 32 arguments, each of the
             underlying object type. Because the last `(N/2)-1` arguments for each constructor
             have a default value of `nil`, you can in fact pass any number of objects (up to 32)
 			when calling the constructor.
@@ -126,9 +146,9 @@ The header file defines the following classes:
 
 A Lua call follow one of the following generic syntax:
 
-	luaObject . {UCall|PCall|ECall} ( [L]"lua code to execute" [, Inputs(inargs...)] [, Outputs(outargs...)] );
-	luaObject . {UCall|PCall|ECall} ( [L]"lua code to execute", inarg [, outarg] );
-	T outval = luaObject . TCall<T> ( [L]"lua code to execute" [, inargs...] );
+	luaObject . {UCall|PCall|ECall} ( [L]"script" [, Inputs(inargs...)] [, Outputs(outargs...)] );
+	luaObject . {UCall|PCall|ECall} ( [L]"script", inarg [, outarg] );
+	T outval = luaObject . TCall<T> ( [L]"script" [, inargs...] );
 
 As introduced earlier, `Lua` class has 4 different methods for performing a call to Lua. 
 
@@ -145,6 +165,12 @@ As introduced earlier, `Lua` class has 4 different methods for performing a call
 			is directly returned by the function. You have to specify the template return type.
             `TCall` also throws an exception in case of errors.			
 
+The `"script"` argument can either be a piece of Lua code, which will be loaded using `luaL_loadstring`,
+or a filename prefixed by the `@` character, which will be loaded by `luaL_loadfile`.
+This mimics the behavior of `LUA_INIT` environment variable on the standalone interpreter.
+The string can be a regular string or a wide character string. Note that the error message will be of
+the same type as the `"script"` argument.
+			
 ### Code footprint
 
 All functions being `inline`, the footprint highly depends on the usage. Just including `lgencall.hpp`
@@ -175,7 +201,7 @@ clause not in a shared header file, but close to where it is needed.
 
 Then instantiate a `Lua` class object. This will automatically call `luaL_newstate`.
 If the Boolean parameter to the constructor is `true` (default), `luaL_openlibs` 
-is also called . Similarly, the destructor calls `lua_close`. Since there is a 
+is also called . Similarly, the destructor calls `lua_close`. Since there is an implicit 
 conversion to `lua_State*`, that main object can be passed as the first argument to
 any Lua API function when needed.
 
@@ -192,9 +218,10 @@ as if the snippet was included inside a function definition like this
 		-- your script snippet goes here 
 	end
 
-Like with the environment variable `LUA_INIT`, if the code snippet begins with the `@`
-character, the remaining of the string is interpreted as a file name, and will be
-loaded using `luaL_loadfile`.
+If you need to execute a script file, prefix its name with the `@` character and use the
+resulting string as the snippet code. Note that although in the script file you will
+be able to access input arguments using the `...` syntax, the `arg` table won't be set
+and will probably be `nil`.
 	
 ### Input arguments
 
@@ -205,12 +232,13 @@ and C array types (note that is the latter case, the size must be _before_ the p
 This example shows a single `char` array interpreted in various ways:
 
 	const char data[5] = {65,0,1,0,100};
-	L.Call("data = {...}; print(...)", Inputs( 
+	L.ECall("data = {...}; print(...)", Inputs( 
 		data,                      // push a zero-terminated string, of length 1
 		(const void*)data,         // push a light userdata pointing to the C variable
 		Input(data, sizeof(data)), // push a string of length 5
 		Input((const void*)data, sizeof(data)), // push a full userdata of 5 bytes
-		Input(sizeof(data), data))); // push a table containing 5 numbers
+		Input(sizeof(data), data), // push a table with 5 single character strings
+		Input(sizeof(data), (signed char*)data))); // push a table with 5 numbers
 
 ### Output results
 
@@ -227,11 +255,12 @@ initial value). For arrays of `char` or `wchar_t` elements, but not `signed char
 instance, a Lua string is expected and will be copied into the buffer. 
 
 	const char* str1, *str2;
-	const void* ptr1, *ptr2;
+	void* ptr1;
+	const void*	ptr2;
 	char str3[8];
 	signed char arr[10];
 	size_t str2len, ptr2len, str3len=sizeof(str3), arrlen=sizeof(arr); 
-	L.Call("s='P\\0Q\\0R'; u=io.stdin; return s,u,s,u,{1,2,3},s", Outputs( 
+	L.ECall("s='P\\0Q\\0R'; u=io.stdin; return s,u,s,u,{1,2,3},s", Outputs( 
 		str1,                  // get a zero-terminated string
 		ptr1,                  // get a userdata pointer
 		Output(str2, str2len), // get a string and its length
@@ -276,7 +305,7 @@ It is normally possible to input and output custom types like structures or clas
 template specialization, without modifying `lgencall.hpp` source file.
 
 For input, the custom type must be a _pointer_ (if it is not, just pass the address of your value),
-and defines a function of the following form (you must be under the namespace `lua`):
+and define a function of the following form (you must be under the namespace `lua`):
 
 	namespace lua {
 	template<> inline void Input::PushValue<yourType>(lua_State* L) const

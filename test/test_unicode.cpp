@@ -31,16 +31,6 @@ bool TestUnicode::InputStrings()
 	return InputCommon("InputNumbers", 0x148e1629, Inputs(v1, Input(v2, 5), Input(countof(v3), v3)));
 }
 
-bool TestUnicode::OutputNumbers()
-{
-	int8_t v1; uint8_t v2; 
-	int16_t v3; uint16_t v4; 
-	int32_t v5; uint32_t v6; 
-	int64_t v7; uint64_t v8; 
-	return OutputCommonStart("OutputNumbers", "a=119; return -a,a,-a^2,a^2,-a^4,a^4,-a^7,a^7", Outputs(v1,v2,v3,v4,v5,v6,v7,v8)) &&
-		OutputCommonEnd(0x55550B71, "{%d,%d,%d,%d,%d,%u,%lld,%llu}", v1,v2,v3,v4,v5,v6,v7,v8);
-}
-
 bool TestUnicode::OverLongUTF8()
 {
 	static const char* overlongs[] = {
@@ -70,5 +60,3 @@ int main(int argc, const PSTRING argv[])
 	TestUnicode test(argc, argv);
 	return test.All() ? 0 : 1;
 }
-
-
