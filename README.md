@@ -63,6 +63,7 @@ Features
 *  Error messages include the stack back trace 
 *  Some compilation switches can exclude unportable code or huge headers
 *  Included test suite which can also serve as usage examples
+*  Can be used as a C++ data type converter library!
 
 ### C++ types currently handled
 *  Special enumerated `nil` value
@@ -268,7 +269,34 @@ instance, a Lua string is expected and will be copied into the buffer.
 		Output(arrlen, arr),   // fill out an array containing 3 numbers
 		Output(str3len, str3))); // copy a string into a buffer
 	
-		
+
+### Data type converter
+
+An unexpected possibility of _LuaGenericCall_ is to use Lua as an intermediate storage
+for converting C++ data between two different types.
+For example, suppose you want to copy all strings from a `vector<string>` into
+the corresponding MFC class `CStringArray`. That latter class behaves differently
+whether or not `UNICODE` is defined. So the copy is not straightforward. With this 
+Lua binding, it now is:
+
+	bool ConvertStringArray(const vector<string>& src, CStringArray& dst)
+	{
+		Lua L(false);
+		return L.PCall("return ...", Input(src), Output(dst)) == NULL;
+	}
+
+In fact, only considering arrays of strings, there are a huge number of possibilities.
+Here is an _incomplete_ list of such container types that can be used with the library:
+
+`const char*[]`, `const wchar_t*[]`, `vector<string>`, `vector<wstring>`,
+`vector<const char*>`, `vector<const wchar_t*>`, `list<string>`, `list<const wchar_t*>`,
+`deque<string>`, `queue<wstring>`, `stack<const char*>`,
+`CStringArray`, `CStringList`, `CArray<const char*>`, `CArray<CStringA>`,
+`CList<CStringW>`, `CArray<wstring>`, ...
+	
+And with numeric data, because of the big number of basic numeric types in C,
+the number of possible template combination is huge !
+
 ### Full example
 
 	#include "lgencall.hpp"
@@ -363,3 +391,4 @@ For output, any type that can be passed by reference can be specialized. The pro
 		printf("text = '%s', number = %d\n", s2.text, s2.number);
 		return 0;
 	}
+
