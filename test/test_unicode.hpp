@@ -8,5 +8,7 @@ public:
 
 private:
 	bool InputStrings();
+	bool OutputStrings();
+	bool WideScript();
 	bool OverLongUTF8();
 };

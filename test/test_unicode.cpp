@@ -19,6 +19,8 @@ using namespace lua;
 bool TestUnicode::All()
 {
 	InputStrings();
+	OutputStrings();
+	WideScript();
 	OverLongUTF8();
 	return FailedCnt == 0;
 }
@@ -29,6 +31,33 @@ bool TestUnicode::InputStrings()
 	const wchar_t* v2=L"World";
 	wchar_t v3[] = { 0, 0x7F, 0x80, 0x7FF, 0x800, 0xFFFF, 0xD7FF, 0xE000, 0xFFFD };
 	return InputCommon("InputNumbers", 0x148e1629, Inputs(v1, Input(v2, 5), Input(countof(v3), v3)));
+}
+
+bool TestUnicode::OutputStrings()
+{
+	const wchar_t*  v1;
+	wchar_t v2[10];
+	size_t v2len = countof(v2);
+	const wchar_t*  v3;
+	return OutputCommonStart("OutputStrings", "return 'Hello ', 'World ', '\\194\\128\\223\\191\\224\\160\\128\\239\\191\\191\\237\\159\\191\\238\\128\\128\\239\\191\\189'", 
+		Outputs(v1,Output(v2len, v2), v3)) &&
+		OutputCommonEnd(0x50f4607d, "{%S,%d:%S,{%X,%X,%X,%X,%X,%X,%X}}", v1,v2len,v2,v3[0],v3[1],v3[2],v3[3],v3[4],v3[5],v3[6]);
+}
+
+bool TestUnicode::WideScript()
+{
+	PSTRING testname = "WideScript";
+	const wchar_t script[] = { 'r','e','t','u','r','n',39, 0x7F, 0x80, 0x7FF, 0x800, 0xD7FF, 0xE000, 39, 0 }; 
+	const wchar_t*  v3;
+	const wchar_t* error = Lua.PCall(script,  Outputs(v3));
+	char buffer[100];
+	if(error)
+	{
+		sprintf(buffer, "%S", script);
+		return Report(testname, buffer);
+	}
+	sprintf(buffer, "{%X,%X,%X,%X,%X,%X}", v3[0],v3[1],v3[2],v3[3],v3[4],v3[5]);
+	return CrcAndReport(testname, 0x5C949D34, buffer);
 }
 
 bool TestUnicode::OverLongUTF8()
