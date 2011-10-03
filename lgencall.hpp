@@ -22,7 +22,7 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 2.0.0
+// Version 2.0.1
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
@@ -1062,6 +1062,7 @@ public:
 	typedef const T& ref;
 	Array() : Size(0), Arguments(NULL) {}
 	Array(const Array& src) { Init(src.Arguments, src.Size); }
+	Array(const T* src[], size_t size) { Init(src, size); }
 	~Array() { delete [] Arguments; }
 	Array(ref arg1) { const T* args[] = { &arg1 }; Init(args, 1); }
 	Array(ref arg1, ref arg2) { const T* args[] = { &arg1, &arg2 }; Init(args, 2); }
@@ -1163,6 +1164,8 @@ public:
 	operator lua_State*() const { return L; }
 	void FlushCache()
 	{
+		nb_shift_inputs = 0;
+		nb_shift_outputs = 0;
 		lua_createtable(L, 0, 0);
 		lua_setfield(L, LUA_REGISTRYINDEX, "LuaClassBasedCaller");
 	}
@@ -1212,6 +1215,20 @@ public:
 	template<class T,class C> T TCall(const C* script, ref arg1, ref arg2, ref arg3, ref arg4, ref arg5, ref arg6, ref arg7, ref arg8,
 		ref arg9, ref arg10=nil, ref arg11=nil, ref arg12=nil, ref arg13=nil, ref arg14=nil, ref arg15=nil, ref arg16=nil)
 		{ return DoTCall<T,C>(script, Inputs(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16)); }
+	Lua& operator << (const Input& input) { shift_inputs[nb_shift_inputs++] = &input; return *this; }
+	Lua& operator >> (const Output& output)  { shift_outputs[nb_shift_outputs++] = &output; return *this; }
+	template<class C> const C* operator | (const C* script) 
+	{ 
+		size_t insize = nb_shift_inputs, outsize = nb_shift_outputs;
+		nb_shift_inputs = nb_shift_outputs = 0;
+		return PCall(script, Inputs(shift_inputs, insize), Outputs(shift_outputs, outsize)); 
+	}
+	template<class C> void operator || (const C* script)
+	{ 
+		size_t insize = nb_shift_inputs, outsize = nb_shift_outputs;
+		nb_shift_inputs = nb_shift_outputs = 0;
+		ECall(script, Inputs(shift_inputs, insize), Outputs(shift_outputs, outsize)); 
+	}
 private:
 	const char* GetString(int idx, char) { return lua_tostring(L, idx); }
 	const wchar_t* GetString(int idx, wchar_t) { return Output::ToWideString(L, idx, NULL); }
@@ -1301,6 +1318,10 @@ private:
 	const char* script;
 	const Inputs* inputs; 
 	const Outputs* outputs;
+	const Input* shift_inputs[32];
+	const Output* shift_outputs[32];
+	unsigned char nb_shift_inputs;
+	unsigned char nb_shift_outputs;
 };
 
 template<> inline void Lua::DoTCall<void, char>(const char* script, const Inputs& inputs) {	ECall<char>(script, inputs); }
