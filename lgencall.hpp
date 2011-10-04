@@ -1171,6 +1171,7 @@ public:
 	}
 	template<class C> void UCall(const C* script, const Input& input, const Output& output = nil) { UCall(script, Inputs(input), Outputs(output)); }
 	template<class C> void UCall(const C* script, const Outputs& outputs) { UCall<C>(script, Inputs(), outputs); }
+	template<class C> void UCall(const C* script, const Output& output) { UCall<C>(script, Inputs(), Outputs(output)); }
 	template<class C> void UCall(const C* script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
 	{
 		PrepareCall(script, inputs, outputs);
@@ -1178,6 +1179,7 @@ public:
 	}
 	template<class C> const C* PCall(const C* script, const Input& input, const Output& output = nil) {  return PCall<C>(script, Inputs(input), Outputs(output)); }
 	template<class C> const C* PCall(const C* script, const Outputs& outputs) { return PCall<C>(script, Inputs(), outputs); }
+	template<class C> const C* PCall(const C* script, const Output& output) { return PCall<C>(script, Inputs(), Outputs(output)); }
 	template<class C> const C* PCall(const C* script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
 	{
 		PrepareCall(script, inputs, outputs);
@@ -1194,6 +1196,7 @@ public:
 	}
 	template<class C> void ECall(const C* script, const Input& input, const Output& output = nil) { ECall<C>(script, Inputs(input), Outputs(output)); }
 	template<class C> void ECall(const C* script, const Outputs& outputs) { ECall<C>(script, Inputs(), outputs); }
+	template<class C> void ECall(const C* script, const Output& output) { ECall<C>(script, Inputs(), Outputs(output)); }
 	template<class C> void ECall(const C* script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
 #if LCBC_USE_EXCEPTIONS
 	{

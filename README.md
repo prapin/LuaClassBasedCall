@@ -59,6 +59,7 @@ Features
    1. unprotected call
    2. protected call: the function returns the error message or `NULL`
    3. exception call: a C++ exception can be thrown with the error message
+*  Several calling syntaxes
 *  Compiled code snippets are cached for performance
 *  Error messages include the stack back trace 
 *  Some compilation switches can exclude unportable code or huge headers
@@ -148,8 +149,10 @@ The header file defines the following classes:
 A Lua call follow one of the following generic syntax:
 
 	luaObject . {UCall|PCall|ECall} ( [L]"script" [, Inputs(inargs...)] [, Outputs(outargs...)] );
-	luaObject . {UCall|PCall|ECall} ( [L]"script", inarg [, outarg] );
+	luaObject . {UCall|PCall|ECall} ( [L]"script" [, inarg] [, outarg] );
 	T outval = luaObject . TCall<T> ( [L]"script" [, inargs...] );
+	error = luaObject [<< inargs...] [>> outargs...] | [L]"script";
+	luaObject [<< inargs...] [>> outargs...] || [L]"script";
 
 As introduced earlier, `Lua` class has 4 different methods for performing a call to Lua. 
 
@@ -164,7 +167,13 @@ As introduced earlier, `Lua` class has 4 different methods for performing a call
             inputs aruguments are simply placed after the code snippet, without the `Inputs`
 			constructor. There are no `Outputs` arguments, instead one (or zero) output result
 			is directly returned by the function. You have to specify the template return type.
-            `TCall` also throws an exception in case of errors.			
+            `TCall` also throws an exception in case of errors.
+*   Form with <<, >> and | :  This is another alternate syntax, inspired from iostream 
+            classes in the C++ Standard Library. It is just a wrapper on top of `PCall`.
+            Note that you have to place every argument and the script snippet in the same instruction.
+*   Form with <<, >> and || :  If a logical OR is used instead of the bitwise OR, the syntax
+            becomes a wrapper over `ECall` which may throw an exception.
+             
 
 The `"script"` argument can either be a piece of Lua code, which will be loaded using `luaL_loadstring`,
 or a filename prefixed by the `@` character, which will be loaded by `luaL_loadfile`.
