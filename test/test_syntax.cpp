@@ -16,6 +16,7 @@ bool TestSyntax::All()
 	UCall();
 	PCall();
 	ECall();
+	TCall();
 	PShift();
 	EShift();
 	return FailedCnt == 0;
@@ -70,6 +71,24 @@ bool TestSyntax::ECall()
 
 	sprintf(buffer, "%d,%d,%d,%s,%s", v1,v2,v3,v4,v5);
 	return CrcAndReport("ECall", 0x8B914470, buffer);
+}
+
+bool TestSyntax::TCall()
+{
+	int v1, v2, v3;
+	const char* v4, *v5;
+	char buffer[1000];
+	v1 = Lua.TCall<int>("return ...", 1);
+	v2 = Lua.TCall<int>(L"return 2");
+	v3 = Lua.TCall<int>("return 3");
+	Lua.TCall<void>("a={...}", 4, 5);
+	Lua.TCall<void>("a[#a+1]=6");
+	Lua.TCall<void>("a[#a+1]=...", 7);
+	v4 = Lua.TCall<const char*>(L"a=DataDumper(a);return a");
+	v5 = Lua.TCall<const char*>(L"return DataDumper{...}", 8, 9);
+
+	sprintf(buffer, "%d,%d,%d,%s,%s", v1,v2,v3,v4,v5);
+	return CrcAndReport("TCall", 0x8B914470, buffer);
 }
 
 bool TestSyntax::PShift()

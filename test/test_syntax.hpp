@@ -10,6 +10,7 @@ private:
 	bool UCall();
 	bool PCall();
 	bool ECall();
+	bool TCall();
 	bool PShift();
 	bool EShift();
 };
