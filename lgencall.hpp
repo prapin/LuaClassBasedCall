@@ -22,7 +22,7 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 2.0.1
+// Version 2.0.2
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
@@ -222,6 +222,15 @@ private:
 		const void* PointerValue;
 		lua_CFunction FunctionValue;
 	};
+	size_t Size;
+};
+
+class SizeRef
+{
+public:
+	SizeRef(size_t size) : Size(size) {}
+	operator size_t&() { return Size; }
+private:
 	size_t Size;
 };
 

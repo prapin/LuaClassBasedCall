@@ -19,4 +19,5 @@ private:
 	bool OutputQueues();
 	bool OutputValArrays();
 	bool OutputOther();
+	bool OutputComplex();
 };

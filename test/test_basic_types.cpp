@@ -125,12 +125,12 @@ bool TestBasicTypes::OutputArrays()
 	int16_t arr1D[4];
 	uint32_t arr2D[2][3];
 	uint8_t arr3D[2][1][2];
-	size_t arr1DLen = countof(arr1D), arr2DLen = countof(arr2D), arr3DLen = countof(arr3D);
+	size_t arr1DLen = countof(arr1D), arr3DLen = countof(arr3D);
 	return OutputCommonStart("OutputArrays", "return {1,2,3,4}, {{11,12,13},{21,22,23}}, {{{111,112}},{{211,212}}}", 
-			Outputs(Output(arr1DLen, arr1D), Output(arr2DLen, arr2D), Output(arr3DLen, arr3D))) &&
+			Outputs(Output(arr1DLen, arr1D), Output(SizeRef(countof(arr2D)), arr2D), Output(arr3DLen, arr3D))) &&
 		OutputCommonEnd(0x5FD6A720, "%d:{%d,%d,%d,%d},%d:{{%u,%u,%u},{%u,%u,%u}},%d:{{{%d,%d}},{{%d,%d}}}", 
 			arr1DLen, arr1D[0], arr1D[1], arr1D[2], arr1D[3],
-			arr2DLen, arr2D[0][0], arr2D[0][1], arr2D[0][2], arr2D[1][0], arr2D[1][1], arr2D[1][2],
+			countof(arr2D), arr2D[0][0], arr2D[0][1], arr2D[0][2], arr2D[1][0], arr2D[1][1], arr2D[1][2],
 			arr3DLen, arr3D[0][0][0], arr3D[0][0][1], arr3D[1][0][0], arr3D[1][0][1]);
 }
 

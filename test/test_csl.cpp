@@ -77,6 +77,7 @@ bool TestCSL::All()
 	OutputQueues();
 	OutputValArrays();
 	OutputOther();
+	OutputComplex();
 	return FailedCnt == 0;
 }
 
@@ -187,6 +188,20 @@ bool TestCSL::OutputOther()
 	return OutputCommonStart("OutputOther", "return {1,2}", 
 			Outputs(v1)) &&
 		OutputCommonEnd(0x78D74F8B, "%s", dump(v1).c_str());
+}
+
+bool TestCSL::OutputComplex()
+{
+	vector<vector<int> > v1;
+	deque<map<char, list<int> > > v2;
+	list<deque<deque<int> > > v3;
+	stack<queue<stack<int> > > v4;
+	return OutputCommonStart("OutputComplex", 
+		"return {{1,2},{3},{4,5,6}},{{A={7,8},B={}},"
+		"{C={9}}},{{{1,2},{3},{4}},{{5}}},{{{1},{2,3}},{{4},{5},{}},{{6,7}}}", 
+			Outputs(v1,v2,v3,v4)) &&
+		OutputCommonEnd(0x78D74F8B, "%s,%s,%s,%s", dump(v1).c_str(), 
+			dump(v2).c_str(), dump(v3).c_str(), dump(v4).c_str());
 }
 
 int main(int argc, const PSTRING argv[])
