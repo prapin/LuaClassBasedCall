@@ -22,7 +22,7 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 2.0.3
+// Version 2.0.4
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
@@ -1104,6 +1104,8 @@ public:
 	Array& operator=(const Array& src) { delete[]Arguments; Init(src.Arguments, src.Size); return *this; }
 	size_t size() const { return Size; }
 	ref get(size_t idx) const { return *Arguments[idx]; }
+	void add(const T& arg) { Arguments[Size++] = &arg; }
+	void empty() { Size = 0; }
 private:
 	void Init(const T* args[], size_t len)
 	{
@@ -1171,8 +1173,6 @@ public:
 	operator lua_State*() const { return L; }
 	void FlushCache()
 	{
-		nb_shift_inputs = 0;
-		nb_shift_outputs = 0;
 		lua_createtable(L, 0, 0);
 		lua_setfield(L, LUA_REGISTRYINDEX, "LuaClassBasedCaller");
 	}
@@ -1225,20 +1225,23 @@ public:
 	template<class T,class C> T TCall(const C* script, ref arg1, ref arg2, ref arg3, ref arg4, ref arg5, ref arg6, ref arg7, ref arg8,
 		ref arg9, ref arg10=nil, ref arg11=nil, ref arg12=nil, ref arg13=nil, ref arg14=nil, ref arg15=nil, ref arg16=nil)
 		{ return DoTCall<T,C>(script, Inputs(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16)); }
-	Lua& operator << (const Input& input) { shift_inputs[nb_shift_inputs++] = &input; return *this; }
-	Lua& operator >> (const Output& output)  { shift_outputs[nb_shift_outputs++] = &output; return *this; }
+	Lua& operator << (const Input& input) { shift_inputs.add(input); return *this; }
+	Lua& operator >> (const Output& output)  { shift_outputs.add(output); return *this; }
 	template<class C> const C* operator | (const C* script) 
 	{ 
-		size_t insize = nb_shift_inputs, outsize = nb_shift_outputs;
-		nb_shift_inputs = nb_shift_outputs = 0;
-		return PCall(script, Inputs(shift_inputs, insize), Outputs(shift_outputs, outsize)); 
+		const C* error = PCall(script, shift_inputs, shift_outputs); 
+		shift_inputs.empty();
+		shift_outputs.empty();
+		return error;
 	}
+#if LCBC_USE_EXCEPTIONS
 	template<class C> void operator || (const C* script)
-	{ 
-		size_t insize = nb_shift_inputs, outsize = nb_shift_outputs;
-		nb_shift_inputs = nb_shift_outputs = 0;
-		ECall(script, Inputs(shift_inputs, insize), Outputs(shift_outputs, outsize)); 
+	{
+		const C* error = operator |<C> (script);
+		if(error)
+			throw ErrorT<C>(error);
 	}
+#endif		
 private:
 	const char* GetString(int idx, char) { return lua_tostring(L, idx); }
 	const wchar_t* GetString(int idx, wchar_t) { return Output::ToWideString(L, idx, NULL); }
@@ -1328,10 +1331,8 @@ private:
 	const char* script;
 	const Inputs* inputs; 
 	const Outputs* outputs;
-	const Input* shift_inputs[32];
-	const Output* shift_outputs[32];
-	unsigned char nb_shift_inputs;
-	unsigned char nb_shift_outputs;
+	Inputs shift_inputs;
+	Outputs shift_outputs;
 };
 
 template<> inline void Lua::DoTCall<void, char>(const char* script, const Inputs& inputs) {	ECall<char>(script, inputs); }
