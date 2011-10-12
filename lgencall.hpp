@@ -123,6 +123,36 @@ class dummy_wstring {};
 size_t wcslen(const dummy_wchar_t*);
 #endif
 
+class WideString
+{
+public:
+	static void Push(lua_State* L, const wchar_t* str) { Push(L, str, wcslen(str)); }
+	static void Push(lua_State* L, const wchar_t* str, size_t len)
+	{
+		lua_getfield(L, LUA_REGISTRYINDEX, "LuaClassBasedPushWideString"); 
+		lua_pushlstring(L, (const char*)str, len*sizeof(wchar_t));
+		lua_call(L, 1, 0);
+	}
+	static const wchar_t* Get(lua_State* L, int idx) { size_t size; return Get(L, idx, size); }
+	static const wchar_t* Get(lua_State* L, int idx, size_t& size)
+	{
+		lua_getfield(L, LUA_REGISTRYINDEX, "LuaClassBasedGetWideString");
+		lua_pushvalue(L, idx);
+		lua_call(L, 1, 1);
+		lua_replace(L, idx);
+		const wchar_t* res = (const wchar_t*)lua_tolstring(L, idx, &size);
+		size /= sizeof(wchar_t);
+		return res;
+	}
+private:
+	static void Push1(lua_State* L, const wchar_t* str, size_t len);
+	static void Push2(lua_State* L, const wchar_t* str, size_t len);
+	static void Push3(lua_State* L, const wchar_t* str, size_t len);
+	static void Get1(lua_State* L, int idx);
+	static void Get2(lua_State* L, int idx);
+	static void Get3(lua_State* L, int idx);
+};
+
 class Input
 {
 public:
@@ -189,19 +219,11 @@ public:
 #endif
 
 	void Push(lua_State* L) const { (this->*pPush)(L); }
-	static void PushWideString(lua_State* L, const wchar_t* str, size_t len)
-	{
-		if(len == 0)
-			len = wcslen(str);
-		lua_getfield(L, LUA_REGISTRYINDEX, "LuaClassBasedPushWideString"); 
-		lua_pushlstring(L, (const char*)str, len*sizeof(wchar_t));
-		lua_call(L, 1, 0);
-	}
 private:
 	void PushNil(lua_State* L) const { lua_pushnil(L); }
 	void PushBoolean(lua_State* L) const { lua_pushboolean(L, BooleanValue); }
 	void PushCharacter(lua_State* L) const { lua_pushlstring(L, &CharacterValue, 1); }
-	void PushWideChar(lua_State* L) const { PushWideString(L, &WideCharValue, 1); }
+	void PushWideChar(lua_State* L) const { WideString::Push(L, &WideCharValue, 1); }
 	void PushNumber(lua_State* L) const { lua_pushnumber(L, NumberValue); }
 	void PushFunction(lua_State* L) const { lua_pushcclosure(L, FunctionValue, (int)Size); }
 	template<class T> void PushNumber(lua_State* L) const { lua_pushnumber(L, lua_Number(*(T*)PointerValue)); }
@@ -292,18 +314,6 @@ public:
 #endif
 
 	void Get(lua_State* L, int idx) const  { (this->*pGet)(L, idx); }
-	static const wchar_t* ToWideString(lua_State* L, int idx, size_t* psize)
-	{
-		size_t len;
-		lua_getfield(L, LUA_REGISTRYINDEX, "LuaClassBasedToWideString");
-		lua_pushvalue(L, idx);
-		lua_call(L, 1, 1);
-		lua_replace(L, idx);
-		const wchar_t* res = (const wchar_t*)lua_tolstring(L, idx, &len);
-		if(psize)
-			*psize = len / sizeof(wchar_t);
-		return res;
-	}
 private:
 	size_t GetSize(size_t s1) const { size_t s2=*pSize; *pSize=s1; return s1 < s2 ? s1 : s2; }
 	void GetNil(lua_State* /*L*/, int /*idx*/) const {}
@@ -401,7 +411,7 @@ template<> inline void Output::GetValue<char>(lua_State* L, int idx) const
 template<> inline void Output::GetValue<wchar_t>(lua_State* L, int idx) const
 {
 	size_t len;
-	const wchar_t* str = ToWideString(L, idx, &len);
+	const wchar_t* str = WideString::Get(L, idx, len);
 	if(len != 1)
 		luaL_error(L, "String length must be 1 for wchar_t type but is %d characters", len);
 	*(wchar_t*)PointerValue = *str;
@@ -481,29 +491,29 @@ template<class T, size_t L2> inline void Output::Get2DArray(lua_State* L, int id
 
 template<> inline void Input::PushValue<wchar_t>(lua_State* L) const
 {
-	PushWideString(L, (const wchar_t*)PointerValue, 0);
+	WideString::Push(L, (const wchar_t*)PointerValue);
 }
 
 template<> inline void Input::PushSizedValue<wchar_t>(lua_State* L) const
 {
-	PushWideString(L, (const wchar_t*)PointerValue, Size);
+	WideString::Push(L, (const wchar_t*)PointerValue, Size);
 }
 
 template<> inline void Output::GetArray<wchar_t>(lua_State* L, int idx) const
 {
 	size_t size;
-	const wchar_t* str = ToWideString(L, idx, &size);
+	const wchar_t* str = WideString::Get(L, idx, size);
 	memcpy(PointerValue, str, GetSize(size+1)*sizeof(wchar_t));
 }
 
 template<> inline void Output::GetValue<const wchar_t*>(lua_State* L, int idx) const
 {
-	*(const wchar_t**)PointerValue = ToWideString(L, idx, NULL);
+	*(const wchar_t**)PointerValue = WideString::Get(L, idx);
 }
 
 template<> inline void Output::GetSizedValue<wchar_t>(lua_State* L, int idx) const
 {
-	*(const wchar_t**)PointerValue = ToWideString(L, idx, pSize);
+	*(const wchar_t**)PointerValue = WideString::Get(L, idx, *pSize);
 }
 
 #if LCBC_USE_CSL
@@ -754,7 +764,7 @@ template<class T> inline void Output::GetBitSet(lua_State* L, int idx) const
 template<> inline void Input::PushValue<wstring>(lua_State* L) const
 {
 	wstring* str = (wstring*)PointerValue;
-	PushWideString(L, str->data(), str->size());
+	WideString::Push(L, str->data(), str->size());
 }
 
 inline Input::Input(const wstring& value) 
@@ -766,7 +776,7 @@ inline Input::Input(const wstring& value)
 template<> inline void Output::GetValue<wstring>(lua_State* L, int idx) const
 {
 	size_t size; 
-	const wchar_t* str = ToWideString(L, idx, &size); 
+	const wchar_t* str = WideString::Get(L, idx, size); 
 	((wstring*)PointerValue)->assign(str, size);
 }
 #endif
@@ -1065,7 +1075,7 @@ template<> inline void Output::GetValue<CTimeSpan>(lua_State* L, int idx) const
 template<> inline void Input::PushValue<CStringW>(lua_State* L) const
 {
 	CStringW* str = (CStringW*)PointerValue;
-	PushWideString(L, *str, str->GetLength());
+	WideString::Push(L, *str, str->GetLength());
 }
 
 inline Input::Input(const CStringW& value) 
@@ -1077,7 +1087,7 @@ inline Input::Input(const CStringW& value)
 template<> inline void Output::GetValue<CStringW>(lua_State* L, int idx) const
 {
 	size_t size; 
-	const wchar_t* str = ToWideString(L, idx, &size); 
+	const wchar_t* str = WideString::Get(L, idx, size); 
 	*(CStringW*)PointerValue = CStringW(str, (int)size);
 }
 #endif
@@ -1169,7 +1179,7 @@ protected:
 	void KeyString(lua_State* L) const { lua_pushstring(L, string); }
 	int LoadString(lua_State* L) const { return luaL_loadstring(L, string); }
 	void KeyWString(lua_State* L) const { lua_pushlstring(L, (const char*)wstring, wcslen(wstring)*sizeof(wchar_t)); }
-	int LoadWString(lua_State* L) const { Input::PushWideString(L, wstring, 0); return luaL_loadstring(L, lua_tostring(L, -1)); }
+	int LoadWString(lua_State* L) const { WideString::Push(L, wstring); return luaL_loadstring(L, lua_tostring(L, -1)); }
 	typedef void (Script::*pKey_t)(lua_State* L) const;
 	typedef int (Script::*pLoad_t)(lua_State* L) const;
 	pKey_t pKey;
@@ -1365,8 +1375,6 @@ private:
 		lua_setfield(L, LUA_REGISTRYINDEX, "LuaClassBasedRetainCount");
 		return count;
 	}
-	void PushWideString(lua_State* L, const wchar_t* wstr, size_t len);
-	const wchar_t* ToWideString(lua_State* L, int idx, size_t* psize);
 	void Retain() { IncrRetainCount(1); }
 	void Release() { if(IncrRetainCount(-1) < 0) lua_close(L); }
 
@@ -1379,38 +1387,28 @@ private:
 };
 
 template<> const char* Lua<char>::GetString(int idx) { return lua_tostring(L, idx); }
-template<> const wchar_t* Lua<wchar_t>::GetString(int idx) { return Output::ToWideString(L, idx, NULL); }
+template<> const wchar_t* Lua<wchar_t>::GetString(int idx) { return WideString::Get(L, idx); }
 template<> template<> inline void Lua<char>::DoTCall<void>(const Script& script, const Inputs& inputs) { ECall(script, inputs); }
 template<> template<> inline void Lua<wchar_t>::DoTCall<void>(const Script& script, const Inputs& inputs) { ECall(script, inputs); }
 
-#if LCBC_USE_WIDESTRING == 1
-template<class C> inline void Lua<C>::PushWideString(lua_State* L, const wchar_t* wstr, size_t len)
+#if LCBC_USE_WIDESTRING
+inline void WideString::Push1(lua_State* L, const wchar_t* wstr, size_t len)
 {
-	if(len == 0)
-		len = wcslen(wstr);
 	lua_pushlstring(L, (const char*)wstr, 2*len);
 }
 
-template<class C> inline const wchar_t* Lua<C>::ToWideString(lua_State* L, int idx, size_t* psize)
+inline void WideString::Get1(lua_State* L, int idx)
 {
 	lua_pushvalue(L, idx);
 	lua_pushlstring(L, "\0\0\0\0", sizeof(wchar_t));
 	lua_concat(L, 2);
-	lua_replace(L, idx);
-	size_t bsize;
-	const wchar_t* res = (const wchar_t*)lua_tolstring(L, idx, &bsize);
-	if(psize)
-		*psize = (bsize-1)/sizeof(wchar_t);
-	return res;
 }
-#elif LCBC_USE_WIDESTRING == 2
-template<class C> inline void Lua<C>::PushWideString(lua_State* L, const wchar_t* wstr, size_t len)
+
+inline void WideString::Push2(lua_State* L, const wchar_t* wstr, size_t len)
 {
 	size_t i;
 	luaL_Buffer b;
 	char buffer[10];
-	if(len == 0)
-		len = wcslen(wstr);
 	luaL_buffinit(L, &b);
 	for(i=0;i<len;i++)
 	{
@@ -1422,7 +1420,7 @@ template<class C> inline void Lua<C>::PushWideString(lua_State* L, const wchar_t
 	luaL_pushresult(&b);
 }
 
-template<class C> inline const wchar_t* Lua<C>::ToWideString(lua_State* L, int idx, size_t* psize)
+inline void WideString::Get2(lua_State* L, int idx)
 {
 	size_t i;
 	luaL_Buffer b;
@@ -1446,25 +1444,15 @@ template<class C> inline const wchar_t* Lua<C>::ToWideString(lua_State* L, int i
 	wchar = 0;
 	luaL_addlstring(&b, (const char*)&wchar, sizeof(wchar)-1);
 	luaL_pushresult(&b);
-	lua_replace(L, idx-(idx<0));
-	size_t bsize;
-	const wchar_t* res = (const wchar_t*)lua_tolstring(L, idx, &bsize);
-	if(psize)
-		*psize = (bsize-1)/sizeof(wchar_t);
-	return res;
 }
 
-#elif LCBC_USE_WIDESTRING == 3
-template<class C>
-inline void Lua<C>::PushWideString(lua_State* L, const wchar_t* wstr, size_t len)
+inline void WideString::Push3(lua_State* L, const wchar_t* wstr, size_t len)
 {
 	luaL_Buffer b;
 	size_t i;
 	wchar_t thres;
 	char str[8], car;
 	luaL_buffinit(L, &b);
-	if(len == 0)
-		len = wcslen(wstr);
 	for(i=0;i<len;i++)
 	{
 		char* pstr = str+sizeof(str);
@@ -1494,7 +1482,7 @@ inline void Lua<C>::PushWideString(lua_State* L, const wchar_t* wstr, size_t len
 	luaL_pushresult(&b);
 }
 
-template<class C> inline const wchar_t* Lua<C>::ToWideString(lua_State* L, int idx, size_t* psize)
+inline void WideString::Get3(lua_State* L, int idx)
 {
 	static const unsigned int min_value[] = {0xFFFFFFFF, 0x80, 0x800, 0x10000, 0x200000, 0xFFFFFFFF, 0xFFFFFFFF};
 	luaL_Buffer b;
@@ -1544,12 +1532,6 @@ template<class C> inline const wchar_t* Lua<C>::ToWideString(lua_State* L, int i
 	wc = 0;
 	luaL_addlstring(&b, (const char*)&wc, sizeof(wc)-1);
 	luaL_pushresult(&b);
-	lua_replace(L, idx-(idx<0));
-	size_t bsize;
-	const wchar_t* res = (const wchar_t*)lua_tolstring(L, idx, &bsize);
-	if(psize)
-		*psize = (bsize-1)/sizeof(wchar_t);
-	return res;
 }
 #endif
 
