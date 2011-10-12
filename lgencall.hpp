@@ -22,7 +22,7 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 2.0.2
+// Version 2.0.3
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
@@ -1069,10 +1069,9 @@ class Array
 {
 public:
 	typedef const T& ref;
-	Array() : Size(0), Arguments(NULL) {}
+	Array() : Size(0) {}
 	Array(const Array& src) { Init(src.Arguments, src.Size); }
 	Array(const T* src[], size_t size) { Init(src, size); }
-	~Array() { delete [] Arguments; }
 	Array(ref arg1) { const T* args[] = { &arg1 }; Init(args, 1); }
 	Array(ref arg1, ref arg2) { const T* args[] = { &arg1, &arg2 }; Init(args, 2); }
 	Array(ref arg1, ref arg2, ref arg3, ref arg4=nil)
@@ -1109,12 +1108,11 @@ private:
 	void Init(const T* args[], size_t len)
 	{
 		Size = len;
-		Arguments = new const T*[len];
 		for(size_t i=0;i<len;i++)
 			Arguments[i] = args[i];
 	}
 	size_t Size;
-	const T** Arguments;
+	const T* Arguments[32];
 };
 
 template<class C>

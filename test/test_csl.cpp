@@ -200,7 +200,7 @@ bool TestCSL::OutputComplex()
 		"return {{1,2},{3},{4,5,6}},{{A={7,8},B={}},"
 		"{C={9}}},{{{1,2},{3},{4}},{{5}}},{{{1},{2,3}},{{4},{5},{}},{{6,7}}}", 
 			Outputs(v1,v2,v3,v4)) &&
-		OutputCommonEnd(0x78D74F8B, "%s,%s,%s,%s", dump(v1).c_str(), 
+		OutputCommonEnd(0x0ECF119A, "%s,%s,%s,%s", dump(v1).c_str(), 
 			dump(v2).c_str(), dump(v3).c_str(), dump(v4).c_str());
 }
 
