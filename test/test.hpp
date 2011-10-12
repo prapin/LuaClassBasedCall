@@ -18,7 +18,7 @@ protected:
 	uint32_t ComputeCrc(const uint8_t* buf, size_t len);
 	void MakeCrcTable();
 	
-	lua::Lua Lua;
+	lua::Lua<> Lua;
 	PSTRING LastTestName;
 	uint32_t CrcTable[256];
 	uint8_t Verbosity;
@@ -39,7 +39,7 @@ Test::Test(int argc, const PSTRING argv[])
 			Verbosity--;
 	}
 	MakeCrcTable();
-	Report("Loading DataDumper", Lua.PCall("@dumper.lua"));
+	Report("Loading DataDumper", Lua.PCall(lua::File("dumper.lua")));
 }
 
 bool Test::Report(bool result, PSTRING test_name, PSTRING error_msg, PSTRING test_msg)

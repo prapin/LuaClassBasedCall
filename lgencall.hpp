@@ -1139,6 +1139,40 @@ typedef ErrorA Error;
 typedef Array<Input> Inputs;
 typedef Array<Output> Outputs;
 
+class Script
+{
+public:
+	Script(const char* snippet) : string(snippet) { pKey=&Script::KeyString; pLoad=&Script::LoadString; }
+	void pushkey(lua_State* L) const { (this->*pKey)(L); }
+	int load(lua_State* L) const { return (this->*pLoad)(L); }
+#if LCBC_USE_WIDESTRING
+	Script(const wchar_t* snippet) : wstring(snippet) { pKey=&Script::KeyWString; pLoad=&Script::LoadWString; }
+	void KeyWString(lua_State* L) const { lua_pushlstring(L, (const char*)wstring, wcslen(wstring)*sizeof(wchar_t)); }
+	int LoadWString(lua_State* L) const { return luaL_loadstring(L, wstring); }
+#endif
+protected:
+	void KeyString(lua_State* L) const { lua_pushstring(L, string); }
+	int LoadString(lua_State* L) const { return luaL_loadstring(L, string); }
+	typedef void (Script::*pKey_t)(lua_State* L) const;
+	typedef int (Script::*pLoad_t)(lua_State* L) const;
+	pKey_t pKey;
+	pLoad_t pLoad;
+	union
+	{
+		const char* string;
+		const wchar_t* wstring;
+	};
+};
+
+class File : public Script
+{
+public:
+	File(const char* snippet) : Script(snippet) { pLoad=(pLoad_t)&File::LoadFile; }
+private:
+	int LoadFile(lua_State* L) const { return luaL_loadfile(L, string); }
+
+};
+template<class C=char>
 class Lua
 {
 public:
@@ -1176,38 +1210,38 @@ public:
 		lua_createtable(L, 0, 0);
 		lua_setfield(L, LUA_REGISTRYINDEX, "LuaClassBasedCaller");
 	}
-	template<class C> void UCall(const C* script, const Input& input, const Output& output = nil) { UCall(script, Inputs(input), Outputs(output)); }
-	template<class C> void UCall(const C* script, const Outputs& outputs) { UCall<C>(script, Inputs(), outputs); }
-	template<class C> void UCall(const C* script, const Output& output) { UCall<C>(script, Inputs(), Outputs(output)); }
-	template<class C> void UCall(const C* script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
+	void UCall(const Script& script, const Input& input, const Output& output = nil) { UCall(script, Inputs(input), Outputs(output)); }
+	void UCall(const Script& script, const Outputs& outputs) { UCall(script, Inputs(), outputs); }
+	void UCall(const Script& script, const Output& output) { UCall(script, Inputs(), Outputs(output)); }
+	void UCall(const Script& script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
 	{
 		PrepareCall(script, inputs, outputs);
 		DoCall();
 	}
-	template<class C> const C* PCall(const C* script, const Input& input, const Output& output = nil) {  return PCall<C>(script, Inputs(input), Outputs(output)); }
-	template<class C> const C* PCall(const C* script, const Outputs& outputs) { return PCall<C>(script, Inputs(), outputs); }
-	template<class C> const C* PCall(const C* script, const Output& output) { return PCall<C>(script, Inputs(), Outputs(output)); }
-	template<class C> const C* PCall(const C* script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
+	const C* PCall(const Script& script, const Input& input, const Output& output = nil) {  return PCall(script, Inputs(input), Outputs(output)); }
+	const C* PCall(const Script& script, const Outputs& outputs) { return PCall(script, Inputs(), outputs); }
+	const C* PCall(const Script& script, const Output& output) { return PCall(script, Inputs(), Outputs(output)); }
+	const C* PCall(const Script& script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
 	{
 		PrepareCall(script, inputs, outputs);
 #if LUA_VERSION_NUM >= 502
 		lua_pushcfunction(L, DoCallS);
 		lua_pushlightuserdata(L, this);
 		if(lua_pcall(L, 1, 0, 0))
-			return GetString(lua_gettop(L), *script);
+			return GetString(lua_gettop(L));
 #else
 		if(lua_cpcall(L, (lua_CFunction)DoCallS, this))
-			return GetString(lua_gettop(L), *script);
+			return GetString(lua_gettop(L));
 #endif
 		return NULL;
 	}
-	template<class C> void ECall(const C* script, const Input& input, const Output& output = nil) { ECall<C>(script, Inputs(input), Outputs(output)); }
-	template<class C> void ECall(const C* script, const Outputs& outputs) { ECall<C>(script, Inputs(), outputs); }
-	template<class C> void ECall(const C* script, const Output& output) { ECall<C>(script, Inputs(), Outputs(output)); }
-	template<class C> void ECall(const C* script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
+	void ECall(const Script& script, const Input& input, const Output& output = nil) { ECall(script, Inputs(input), Outputs(output)); }
+	void ECall(const Script& script, const Outputs& outputs) { ECall(script, Inputs(), outputs); }
+	void ECall(const Script& script, const Output& output) { ECall(script, Inputs(), Outputs(output)); }
+	void ECall(const Script& script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
 #if LCBC_USE_EXCEPTIONS
 	{
-		const C* error = PCall<C>(script, inputs, outputs);
+		const C* error = PCall(script, inputs, outputs);
 		if(error)
 			throw ErrorT<C>(error);
 	}
@@ -1215,19 +1249,19 @@ public:
 	;
 #endif		
 	typedef const Input& ref;
-	template<class T,class C> T TCall(const C* script) { return DoTCall<T,C>(script, Inputs()); }
-	template<class T,class C> T TCall(const C* script, ref arg1) { return DoTCall<T,C>(script, arg1); }
-	template<class T,class C> T TCall(const C* script, ref arg1, ref arg2) { return DoTCall<T,C>(script, Inputs(arg1, arg2)); }
-	template<class T,class C> T TCall(const C* script, ref arg1, ref arg2, ref arg3, ref arg4=nil) 
-		{ return DoTCall<T,C>(script, Inputs(arg1, arg2, arg3, arg4)); }
-	template<class T,class C> T TCall(const C* script, ref arg1, ref arg2, ref arg3, ref arg4, ref arg5, ref arg6=nil, ref arg7=nil, ref arg8=nil) 
-		{ return DoTCall<T,C>(script, Inputs(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)); }
-	template<class T,class C> T TCall(const C* script, ref arg1, ref arg2, ref arg3, ref arg4, ref arg5, ref arg6, ref arg7, ref arg8,
+	template<class T> T TCall(const Script& script) { return DoTCall<T>(script, Inputs()); }
+	template<class T> T TCall(const Script& script, ref arg1) { return DoTCall<T>(script, arg1); }
+	template<class T> T TCall(const Script& script, ref arg1, ref arg2) { return DoTCall<T>(script, Inputs(arg1, arg2)); }
+	template<class T> T TCall(const Script& script, ref arg1, ref arg2, ref arg3, ref arg4=nil) 
+		{ return DoTCall<T>(script, Inputs(arg1, arg2, arg3, arg4)); }
+	template<class T> T TCall(const Script& script, ref arg1, ref arg2, ref arg3, ref arg4, ref arg5, ref arg6=nil, ref arg7=nil, ref arg8=nil) 
+		{ return DoTCall<T>(script, Inputs(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)); }
+	template<class T> T TCall(const Script& script, ref arg1, ref arg2, ref arg3, ref arg4, ref arg5, ref arg6, ref arg7, ref arg8,
 		ref arg9, ref arg10=nil, ref arg11=nil, ref arg12=nil, ref arg13=nil, ref arg14=nil, ref arg15=nil, ref arg16=nil)
-		{ return DoTCall<T,C>(script, Inputs(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16)); }
+		{ return DoTCall<T>(script, Inputs(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16)); }
 	Lua& operator << (const Input& input) { shift_inputs.add(input); return *this; }
 	Lua& operator >> (const Output& output)  { shift_outputs.add(output); return *this; }
-	template<class C> const C* operator | (const C* script) 
+	const C* operator | (const Script& script) 
 	{ 
 		const C* error = PCall(script, shift_inputs, shift_outputs); 
 		shift_inputs.empty();
@@ -1235,26 +1269,20 @@ public:
 		return error;
 	}
 #if LCBC_USE_EXCEPTIONS
-	template<class C> void operator || (const C* script)
+	void operator || (const Script& script)
 	{
-		const C* error = operator |<C> (script);
+		const C* error = operator | (script);
 		if(error)
 			throw ErrorT<C>(error);
 	}
 #endif		
 private:
-	const char* GetString(int idx, char) { return lua_tostring(L, idx); }
-	const wchar_t* GetString(int idx, wchar_t) { return Output::ToWideString(L, idx, NULL); }
-	void PrepareCall(const wchar_t* script_, const Inputs& inputs, const Outputs& outputs)
-	{
-		PrepareCall("", inputs, outputs);
-		Input::PushWideString(L, script_, 0);
-		script = lua_tostring(L, -1);
-	}
-	void PrepareCall(const char* script_, const Inputs& inputs_, const Outputs& outputs_)
+	const C* GetString(int idx) { return lua_tostring(L, idx); }
+	//const wchar_t* GetString(int idx) { return Output::ToWideString(L, idx, NULL); }
+	void PrepareCall(const Script& script_, const Inputs& inputs_, const Outputs& outputs_)
 	{
 		lua_settop(L, 0);
-		script = script_;
+		script = &script_;
 		inputs = &inputs_;
 		outputs = &outputs_;
 	}
@@ -1263,18 +1291,15 @@ private:
 		lua_pushcfunction(L, (lua_CFunction)traceback);
 		int idxtrace = lua_gettop(L);
 		lua_getfield(L, LUA_REGISTRYINDEX, "LuaClassBasedCaller");
-		lua_getfield(L, -1, script);
+		script->pushkey(L);
+		lua_gettable(L, -2);
 		if(!lua_isfunction(L, -1))
 		{
-			int res;
-			if(*script == '@')
-				res = luaL_loadfile(L, script+1);
-			else
-				res = luaL_loadstring(L, script);
-			if(res)
+			if(script->load(L))
 				lua_error(L);
 			lua_pushvalue(L, -1);
-			lua_setfield(L, -4, script);
+			script->pushkey(L);
+			lua_rawset(L, -5);
 		}
 		int base = lua_gettop(L);
 		lua_checkstack(L, (int)inputs->size());
@@ -1291,10 +1316,10 @@ private:
 		This->DoCall();
 		return 0;
 	}
-	template<class T,class C> T DoTCall(const C* script, const Inputs& inputs)
+	template<class T> T DoTCall(const Script& script, const Inputs& inputs)
 	{
 		T value;
-		ECall<C>(script, inputs, Outputs(value));
+		ECall(script, inputs, Outputs(value));
 		return value;
 	}
 	/* Function copied from lua.c */
@@ -1328,15 +1353,14 @@ private:
 	void Release() { if(IncrRetainCount(-1) < 0) lua_close(L); }
 
 	lua_State* L;
-	const char* script;
+	const Script* script;
 	const Inputs* inputs; 
 	const Outputs* outputs;
 	Inputs shift_inputs;
 	Outputs shift_outputs;
 };
 
-template<> inline void Lua::DoTCall<void, char>(const char* script, const Inputs& inputs) {	ECall<char>(script, inputs); }
-template<> inline void Lua::DoTCall<void, wchar_t>(const wchar_t* script, const Inputs& inputs) { ECall<wchar_t>(script, inputs); }
+//template<> inline void Lua<>::DoTCall<void>(const Script& script, const Inputs& inputs) { ECall(script, inputs); }
 
 #if LCBC_USE_WIDESTRING == 1
 inline void Input::PushWideString(lua_State* L, const wchar_t* wstr, size_t len)
