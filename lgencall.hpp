@@ -126,19 +126,11 @@ size_t wcslen(const dummy_wchar_t*);
 class WideString
 {
 public:
-	static void SetMode(lua_State* L, int mode)
+	template<int mode> static void SetMode(lua_State* L)
 	{
-		lua_CFunction pPush=NULL, pGet=NULL;
-		switch(mode)
-		{
-			case 0: return;
-			case 1: pPush = Push1; pGet = Get1; break;
-			case 2: pPush = Push2; pGet = Get2; break;
-			case 3: pPush = Push3; pGet = Get3; break;
-		}
-		lua_pushcfunction(L, pPush);
+		lua_pushcfunction(L, Push<mode>);
 		lua_setfield(L, LUA_REGISTRYINDEX, "LuaClassBasedPushWideString"); 
-		lua_pushcfunction(L, pGet);
+		lua_pushcfunction(L, Get<mode>);
 		lua_setfield(L, LUA_REGISTRYINDEX, "LuaClassBasedGetWideString"); 
 		
 	}
@@ -161,12 +153,8 @@ public:
 		return res;
 	}
 private:
-	static int Push1(lua_State* L);
-	static int Push2(lua_State* L);
-	static int Push3(lua_State* L);
-	static int Get1(lua_State* L);
-	static int Get2(lua_State* L);
-	static int Get3(lua_State* L);
+	template<int mode> static int Push(lua_State* L);
+	template<int mode> static int Get(lua_State* L);
 };
 
 class Input
@@ -1224,9 +1212,7 @@ public:
 		L = luaL_newstate(); 
 		if(fOpenLibs)
 			luaL_openlibs(L); 
-#if LCBC_USE_WIDESTRING
-		WideString::SetMode(L, LCBC_USE_WIDESTRING);
-#endif
+		WideString::SetMode<LCBC_USE_WIDESTRING>(L);
 		FlushCache();
 	}
 	Lua(lua_State* l) 
@@ -1410,20 +1396,19 @@ template<> const wchar_t* Lua<wchar_t>::GetString(int idx) { return WideString::
 template<> template<> inline void Lua<char>::DoTCall<void>(const Script& script, const Inputs& inputs) { ECall(script, inputs); }
 template<> template<> inline void Lua<wchar_t>::DoTCall<void>(const Script& script, const Inputs& inputs) { ECall(script, inputs); }
 
+template<> inline int WideString::Push<0>(lua_State* /*L*/) { return 1; }
+template<> inline int WideString::Get<0>(lua_State* /*L*/) { return 1; }
 #if LCBC_USE_WIDESTRING
-inline int WideString::Push1(lua_State* /*L*/)
-{
-	return 1;
-}
+template<> inline int WideString::Push<1>(lua_State* /*L*/) { return 1; }
 
-inline int WideString::Get1(lua_State* L)
+template<> inline int WideString::Get<1>(lua_State* L)
 {
 	lua_pushlstring(L, "\0\0\0\0", sizeof(wchar_t));
 	lua_concat(L, 2);
 	return 1;
 }
 
-inline int WideString::Push2(lua_State* L)
+template<> inline int WideString::Push<2>(lua_State* L)
 {
 	size_t i, len;
 	luaL_Buffer b;
@@ -1442,7 +1427,7 @@ inline int WideString::Push2(lua_State* L)
 	return 1;
 }
 
-inline int WideString::Get2(lua_State* L)
+template<> inline int WideString::Get<2>(lua_State* L)
 {
 	size_t i;
 	luaL_Buffer b;
@@ -1469,7 +1454,7 @@ inline int WideString::Get2(lua_State* L)
 	return 1;
 }
 
-inline int WideString::Push3(lua_State* L)
+template<> inline int WideString::Push<3>(lua_State* L)
 {
 	luaL_Buffer b;
 	size_t i, len;
@@ -1508,7 +1493,7 @@ inline int WideString::Push3(lua_State* L)
 	return 1;
 }
 
-inline int WideString::Get3(lua_State* L)
+template<> inline int WideString::Get<3>(lua_State* L)
 {
 	static const unsigned int min_value[] = {0xFFFFFFFF, 0x80, 0x800, 0x10000, 0x200000, 0xFFFFFFFF, 0xFFFFFFFF};
 	luaL_Buffer b;
