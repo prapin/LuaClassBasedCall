@@ -1294,8 +1294,7 @@ public:
 	}
 #endif		
 private:
-	const C* GetString(int idx) { return lua_tostring(L, idx); }
-	//const wchar_t* GetString(int idx) { return Output::ToWideString(L, idx, NULL); }
+	const C* GetString(int idx);
 	void PrepareCall(const Script& script_, const Inputs& inputs_, const Outputs& outputs_)
 	{
 		lua_settop(L, 0);
@@ -1379,7 +1378,10 @@ private:
 	Outputs shift_outputs;
 };
 
-//template<class C> template<class T> inline void Lua<C>::DoTCall<T>(const Script& script, const Inputs& inputs) { ECall(script, inputs); }
+template<> const char* Lua<char>::GetString(int idx) { return lua_tostring(L, idx); }
+template<> const wchar_t* Lua<wchar_t>::GetString(int idx) { return Output::ToWideString(L, idx, NULL); }
+template<> template<> inline void Lua<char>::DoTCall<void>(const Script& script, const Inputs& inputs) { ECall(script, inputs); }
+template<> template<> inline void Lua<wchar_t>::DoTCall<void>(const Script& script, const Inputs& inputs) { ECall(script, inputs); }
 
 #if LCBC_USE_WIDESTRING == 1
 template<class C> inline void Lua<C>::PushWideString(lua_State* L, const wchar_t* wstr, size_t len)

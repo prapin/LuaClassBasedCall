@@ -46,6 +46,7 @@ bool TestUnicode::OutputStrings()
 
 bool TestUnicode::WideScript()
 {
+	lua::Lua<wchar_t> Lua;
 	PSTRING testname = "WideScript";
 	const wchar_t script[] = { 'r','e','t','u','r','n',39, 0x7F, 0x80, 0x7FF, 0x800, 0xD7FF, 0xE000, 39, 0 }; 
 	const wchar_t*  v3;
