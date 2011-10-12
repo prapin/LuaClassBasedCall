@@ -113,13 +113,13 @@ bool TestSyntax::EShift()
 	int v1, v2, v3;
 	const char* v4, *v5;
 	char buffer[1000];
-	Lua << 1 >> v1 || L"return ...";
-	Lua >> v2 >> v3 || "return 2,3";
-	Lua << 4 << 5 || L"a={...}";
-	Lua || L"a[#a+1]=6";
-	Lua << 7 || L"a[#a+1]=...";
-	Lua >> v4 || "a=DataDumper(a);return a";
-	Lua << 8 << 9 >> v5 || "return DataDumper{...}";
+	Lua << 1 >> v1 & L"return ...";
+	Lua >> v2 >> v3 & "return 2,3";
+	Lua << 4 << 5 & L"a={...}";
+	Lua & L"a[#a+1]=6";
+	Lua << 7 & L"a[#a+1]=...";
+	Lua >> v4 & "a=DataDumper(a);return a";
+	Lua << 8 << 9 >> v5 & "return DataDumper{...}";
 
 	sprintf(buffer, "%d,%d,%d,%s,%s", v1,v2,v3,v4,v5);
 	return CrcAndReport("EShift", 0x8B914470, buffer);
