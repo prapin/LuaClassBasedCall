@@ -126,6 +126,22 @@ size_t wcslen(const dummy_wchar_t*);
 class WideString
 {
 public:
+	static void SetMode(lua_State* L, int mode)
+	{
+		lua_CFunction pPush=NULL, pGet=NULL;
+		switch(mode)
+		{
+			case 0: return;
+			case 1: pPush = Push1; pGet = Get1; break;
+			case 2: pPush = Push2; pGet = Get2; break;
+			case 3: pPush = Push3; pGet = Get3; break;
+		}
+		lua_pushcfunction(L, pPush);
+		lua_setfield(L, LUA_REGISTRYINDEX, "LuaClassBasedPushWideString"); 
+		lua_pushcfunction(L, pGet);
+		lua_setfield(L, LUA_REGISTRYINDEX, "LuaClassBasedGetWideString"); 
+		
+	}
 	static void Push(lua_State* L, const wchar_t* str) { Push(L, str, wcslen(str)); }
 	static void Push(lua_State* L, const wchar_t* str, size_t len)
 	{
@@ -145,12 +161,12 @@ public:
 		return res;
 	}
 private:
-	static void Push1(lua_State* L, const wchar_t* str, size_t len);
-	static void Push2(lua_State* L, const wchar_t* str, size_t len);
-	static void Push3(lua_State* L, const wchar_t* str, size_t len);
-	static void Get1(lua_State* L, int idx);
-	static void Get2(lua_State* L, int idx);
-	static void Get3(lua_State* L, int idx);
+	static int Push1(lua_State* L);
+	static int Push2(lua_State* L);
+	static int Push3(lua_State* L);
+	static int Get1(lua_State* L);
+	static int Get2(lua_State* L);
+	static int Get3(lua_State* L);
 };
 
 class Input
@@ -1208,6 +1224,9 @@ public:
 		L = luaL_newstate(); 
 		if(fOpenLibs)
 			luaL_openlibs(L); 
+#if LCBC_USE_WIDESTRING
+		WideString::SetMode(L, LCBC_USE_WIDESTRING);
+#endif
 		FlushCache();
 	}
 	Lua(lua_State* l) 
@@ -1392,23 +1411,25 @@ template<> template<> inline void Lua<char>::DoTCall<void>(const Script& script,
 template<> template<> inline void Lua<wchar_t>::DoTCall<void>(const Script& script, const Inputs& inputs) { ECall(script, inputs); }
 
 #if LCBC_USE_WIDESTRING
-inline void WideString::Push1(lua_State* L, const wchar_t* wstr, size_t len)
+inline int WideString::Push1(lua_State* /*L*/)
 {
-	lua_pushlstring(L, (const char*)wstr, 2*len);
+	return 1;
 }
 
-inline void WideString::Get1(lua_State* L, int idx)
+inline int WideString::Get1(lua_State* L)
 {
-	lua_pushvalue(L, idx);
 	lua_pushlstring(L, "\0\0\0\0", sizeof(wchar_t));
 	lua_concat(L, 2);
+	return 1;
 }
 
-inline void WideString::Push2(lua_State* L, const wchar_t* wstr, size_t len)
+inline int WideString::Push2(lua_State* L)
 {
-	size_t i;
+	size_t i, len;
 	luaL_Buffer b;
 	char buffer[10];
+	const wchar_t* wstr = (const wchar_t*)lua_tolstring(L, 1, &len);
+	len /= sizeof(wchar_t);
 	luaL_buffinit(L, &b);
 	for(i=0;i<len;i++)
 	{
@@ -1418,15 +1439,16 @@ inline void WideString::Push2(lua_State* L, const wchar_t* wstr, size_t len)
 		luaL_addlstring(&b, buffer, res);
 	}
 	luaL_pushresult(&b);
+	return 1;
 }
 
-inline void WideString::Get2(lua_State* L, int idx)
+inline int WideString::Get2(lua_State* L)
 {
 	size_t i;
 	luaL_Buffer b;
 	wchar_t wchar;
 	size_t len, pos = 0;
-	const char* psrc = luaL_checklstring(L, idx, &len);
+	const char* psrc = luaL_checklstring(L, 1, &len);
 	luaL_buffinit(L, &b);
 	for(i=0;i<len;i++)
 	{
@@ -1444,14 +1466,17 @@ inline void WideString::Get2(lua_State* L, int idx)
 	wchar = 0;
 	luaL_addlstring(&b, (const char*)&wchar, sizeof(wchar)-1);
 	luaL_pushresult(&b);
+	return 1;
 }
 
-inline void WideString::Push3(lua_State* L, const wchar_t* wstr, size_t len)
+inline int WideString::Push3(lua_State* L)
 {
 	luaL_Buffer b;
-	size_t i;
+	size_t i, len;
 	wchar_t thres;
 	char str[8], car;
+	const wchar_t* wstr = (const wchar_t*)lua_tolstring(L, 1, &len);
+	len /= sizeof(wchar_t);
 	luaL_buffinit(L, &b);
 	for(i=0;i<len;i++)
 	{
@@ -1480,9 +1505,10 @@ inline void WideString::Push3(lua_State* L, const wchar_t* wstr, size_t len)
 		luaL_addlstring(&b, pstr, str+sizeof(str)-1-pstr);
 	}
 	luaL_pushresult(&b);
+	return 1;
 }
 
-inline void WideString::Get3(lua_State* L, int idx)
+inline int WideString::Get3(lua_State* L)
 {
 	static const unsigned int min_value[] = {0xFFFFFFFF, 0x80, 0x800, 0x10000, 0x200000, 0xFFFFFFFF, 0xFFFFFFFF};
 	luaL_Buffer b;
@@ -1491,7 +1517,7 @@ inline void WideString::Get3(lua_State* L, int idx)
 	char car;
 	size_t len;
 	wchar_t wc;
-	const char* str = (const char*)luaL_checklstring(L, idx, &len);
+	const char* str = (const char*)luaL_checklstring(L, 1, &len);
 	const char* strend = str + len;
 	luaL_buffinit(L, &b);
 	while(str < strend)
@@ -1532,6 +1558,7 @@ inline void WideString::Get3(lua_State* L, int idx)
 	wc = 0;
 	luaL_addlstring(&b, (const char*)&wc, sizeof(wc)-1);
 	luaL_pushresult(&b);
+	return 1;
 }
 #endif
 
