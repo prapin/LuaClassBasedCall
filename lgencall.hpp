@@ -139,7 +139,7 @@ public:
 	{
 		lua_getfield(L, LUA_REGISTRYINDEX, "LuaClassBasedPushWideString"); 
 		lua_pushlstring(L, (const char*)str, len*sizeof(wchar_t));
-		lua_call(L, 1, 0);
+		lua_call(L, 1, 1);
 	}
 	static const wchar_t* Get(lua_State* L, int idx) { size_t size; return Get(L, idx, size); }
 	static const wchar_t* Get(lua_State* L, int idx, size_t& size)
@@ -1183,7 +1183,13 @@ protected:
 	void KeyString(lua_State* L) const { lua_pushstring(L, string); }
 	int LoadString(lua_State* L) const { return luaL_loadstring(L, string); }
 	void KeyWString(lua_State* L) const { lua_pushlstring(L, (const char*)wstring, wcslen(wstring)*sizeof(wchar_t)); }
-	int LoadWString(lua_State* L) const { WideString::Push(L, wstring); return luaL_loadstring(L, lua_tostring(L, -1)); }
+	int LoadWString(lua_State* L) const 
+	{ 
+		WideString::Push(L, wstring); 
+		int res = luaL_loadstring(L, lua_tostring(L, -1)); 
+		lua_remove(L, -2);
+		return res;
+	}
 	typedef void (Script::*pKey_t)(lua_State* L) const;
 	typedef int (Script::*pLoad_t)(lua_State* L) const;
 	pKey_t pKey;
