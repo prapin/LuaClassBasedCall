@@ -1,7 +1,7 @@
 // Configuration flags: using wide strings and exceptions
 #define LCBC_USE_MFC 0
 #define LCBC_USE_CSL 0
-#define LCBC_USE_WIDESTRING 2
+#define LCBC_USE_WIDESTRING 1
 #define LCBC_USE_EXCEPTIONS 1
 
 #define _CRT_SECURE_NO_WARNINGS
@@ -13,6 +13,7 @@ using namespace lua;
 
 bool TestSyntax::All()
 {
+	WideString::SetMode<LocaleMode>(Lua);
 	UCall();
 	PCall();
 	ECall();

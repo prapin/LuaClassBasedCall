@@ -38,7 +38,6 @@ Test::Test(int argc, const PSTRING argv[])
 		if(strcmp(argv[i], "-q") == 0)
 			Verbosity--;
 	}
-	lua::WideString::SetMode<LCBC_USE_WIDESTRING>(Lua);
 	MakeCrcTable();
 	Report("Loading DataDumper", Lua.PCall(lua::File("dumper.lua")));
 }

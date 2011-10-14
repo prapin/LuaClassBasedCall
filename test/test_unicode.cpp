@@ -4,7 +4,7 @@
 #define LCBC_USE_CSL 0
 #define LCBC_USE_EXCEPTIONS 0
 #ifndef LCBC_USE_WIDESTRING
-#define LCBC_USE_WIDESTRING 3 // But try with 1 and 2 too.
+#define LCBC_USE_WIDESTRING 1
 #endif
 
 #define _CRT_SECURE_NO_WARNINGS
@@ -18,6 +18,7 @@ using namespace lua;
 
 bool TestUnicode::All()
 {
+	WideString::SetMode<Utf8Mode>(Lua);
 	InputStrings();
 	OutputStrings();
 	WideScript();

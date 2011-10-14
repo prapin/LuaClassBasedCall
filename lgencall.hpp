@@ -28,14 +28,17 @@
 #define LUA_CLASSES_BASED_CALL_H
 
 /* LCBC_USE_WIDESTRING defines the support for wide character (Unicode) strings:
-   0 : wchar_t and wstring are not supported; to make sure they are #defined to dummy types
-   1 : no conversion, wide character strings are pushed verbatim to the stack (raw bytes);
+   0 : wchar_t and wstring are not supported; to make sure they are #defined to dummy types;
+   1 : wchar_t and wstring can be used as arguments to Input, Output and Script classes.
+       You have to call WideString::SetMode<>() template function to set the desired conversion.
+   The template parameter of SetMode can be one of these:
+   RawMode : no conversion, wide character strings are pushed verbatim to the stack (raw bytes);
        script snippets cannot be wchar_t* (you would get syntax errors looking like Chineese)
-   2 : conversions between wchar_t* and char* use wctomb and mbtowc standard functions;
-       the resulting strings depend on your current locale
-   3 : conversions between wchar_t* and char* are done by the library, using UTF-8 encoding */
+   LocaleMode : conversions between wchar_t* and char* use wctomb and mbtowc standard functions;
+       the resulting strings depend on your current locale;
+   Utf8Mode : conversions between wchar_t* and char* are done by the library, using UTF-8 encoding */
 #ifndef LCBC_USE_WIDESTRING
-#define LCBC_USE_WIDESTRING 3
+#define LCBC_USE_WIDESTRING 1
 #endif
 
 /* LCBC_USE_CSL defines if data containers and some other classes from the 
@@ -44,7 +47,7 @@
    - vector<T>, map<K,T>, list<T>, set<T>, deque<T>, multiset<T>, multimap<K,T>
    - queue<T,C>, priority_queue<T,C>, stack<T,C>
    - pair<T1,T2>, valarray<T>, bitset<N>
-   0: no support
+   0: no support;
    1: C++ Standard Library data can be exchanged with Lua. 
 */
 #ifndef LCBC_USE_CSL
@@ -115,7 +118,7 @@ using namespace std;
 
 enum eNil { nil };
 
-#if LCBC_USE_WIDESTRING == 0
+#if !LCBC_USE_WIDESTRING
 enum dummy_wchar_t {};
 class dummy_wstring {};
 #define wchar_t dummy_wchar_t
@@ -123,10 +126,12 @@ class dummy_wstring {};
 size_t wcslen(const dummy_wchar_t*);
 #endif
 
+enum WideStringMode { RawMode, LocaleMode, Utf8Mode };
+
 class WideString
 {
 public:
-	template<int mode> static void SetMode(lua_State* L)
+	template<WideStringMode mode> static void SetMode(lua_State* L)
 	{
 		lua_pushcfunction(L, Push<mode>);
 		lua_setfield(L, LUA_REGISTRYINDEX, "LuaClassBasedPushWideString"); 
@@ -153,8 +158,8 @@ public:
 		return res;
 	}
 private:
-	template<int mode> static int Push(lua_State* L);
-	template<int mode> static int Get(lua_State* L);
+	template<WideStringMode mode> static int Push(lua_State* L);
+	template<WideStringMode mode> static int Get(lua_State* L);
 };
 
 class Input
@@ -1401,19 +1406,17 @@ template<> const wchar_t* Lua<wchar_t>::GetString(int idx) { return WideString::
 template<> template<> inline void Lua<char>::DoTCall<void>(const Script& script, const Inputs& inputs) { ECall(script, inputs); }
 template<> template<> inline void Lua<wchar_t>::DoTCall<void>(const Script& script, const Inputs& inputs) { ECall(script, inputs); }
 
-template<> inline int WideString::Push<0>(lua_State* /*L*/) { return 1; }
-template<> inline int WideString::Get<0>(lua_State* /*L*/) { return 1; }
 #if LCBC_USE_WIDESTRING
-template<> inline int WideString::Push<1>(lua_State* /*L*/) { return 1; }
+template<> inline int WideString::Push<RawMode>(lua_State* /*L*/) { return 1; }
 
-template<> inline int WideString::Get<1>(lua_State* L)
+template<> inline int WideString::Get<RawMode>(lua_State* L)
 {
 	lua_pushlstring(L, "\0\0\0\0", sizeof(wchar_t));
 	lua_concat(L, 2);
 	return 1;
 }
 
-template<> inline int WideString::Push<2>(lua_State* L)
+template<> inline int WideString::Push<LocaleMode>(lua_State* L)
 {
 	size_t i, len;
 	luaL_Buffer b;
@@ -1432,7 +1435,7 @@ template<> inline int WideString::Push<2>(lua_State* L)
 	return 1;
 }
 
-template<> inline int WideString::Get<2>(lua_State* L)
+template<> inline int WideString::Get<LocaleMode>(lua_State* L)
 {
 	size_t i;
 	luaL_Buffer b;
@@ -1459,7 +1462,7 @@ template<> inline int WideString::Get<2>(lua_State* L)
 	return 1;
 }
 
-template<> inline int WideString::Push<3>(lua_State* L)
+template<> inline int WideString::Push<Utf8Mode>(lua_State* L)
 {
 	luaL_Buffer b;
 	size_t i, len;
@@ -1498,7 +1501,7 @@ template<> inline int WideString::Push<3>(lua_State* L)
 	return 1;
 }
 
-template<> inline int WideString::Get<3>(lua_State* L)
+template<> inline int WideString::Get<Utf8Mode>(lua_State* L)
 {
 	static const unsigned int min_value[] = {0xFFFFFFFF, 0x80, 0x800, 0x10000, 0x200000, 0xFFFFFFFF, 0xFFFFFFFF};
 	luaL_Buffer b;
@@ -1552,7 +1555,7 @@ template<> inline int WideString::Get<3>(lua_State* L)
 }
 #endif
 
-#if LCBC_USE_WIDESTRING == 0
+#if !LCBC_USE_WIDESTRING
 #undef wchar_t
 #undef wstring
 #endif
