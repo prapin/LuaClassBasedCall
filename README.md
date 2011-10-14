@@ -139,7 +139,7 @@ The header file defines the following classes:
 * `ErrorA`: Defined as `ErrorT<char>`
 * `ErrorW`: Defined as `ErrorT<wchar_t>`
 * `Error`: Defined to either `ErrorA` or `ErrorW`, depending on the definition of `UNICODE`.
-* `Lua`: The main class. It is responsible to open and close the Lua state, and most importantly
+* `Lua<C>`: The main class. It is responsible to open and close the Lua state, and most importantly
          to call Lua using a script, passing inputs and retrieving outputs. There are several
          forms of calling interfaces (`UCall`, `PCall`, `ECall`, `TCall`) and a number of overloads 
          to handle all user cases.
@@ -152,7 +152,7 @@ A Lua call follow one of the following generic syntax:
 	luaObject . {UCall|PCall|ECall} ( [L]"script" [, inarg] [, outarg] );
 	T outval = luaObject . TCall<T> ( [L]"script" [, inargs...] );
 	error = luaObject [<< inargs...] [>> outargs...] | [L]"script";
-	luaObject [<< inargs...] [>> outargs...] || [L]"script";
+	luaObject [<< inargs...] [>> outargs...] & [L]"script";
 
 As introduced earlier, `Lua` class has 4 different methods for performing a call to Lua. 
 
@@ -171,7 +171,7 @@ As introduced earlier, `Lua` class has 4 different methods for performing a call
 *   Form with <<, >> and | :  This is another alternate syntax, inspired from iostream 
             classes in the C++ Standard Library. It is just a wrapper on top of `PCall`.
             Note that you have to place every argument and the script snippet in the same instruction.
-*   Form with <<, >> and || :  If a logical OR is used instead of the bitwise OR, the syntax
+*   Form with <<, >> and & :  If a bitwise AND is used instead of the bitwise OR, the syntax
             becomes a wrapper over `ECall` which may throw an exception.
              
 
@@ -290,7 +290,7 @@ Lua binding, it now is:
 
 	bool ConvertStringArray(const vector<string>& src, CStringArray& dst)
 	{
-		Lua L(false);
+		Lua<> L(false);
 		return L.PCall("return ...", Input(src), Output(dst)) == NULL;
 	}
 
@@ -315,7 +315,7 @@ the number of possible template combination is huge !
 	
 	int main(int argc, char* argv[])
 	{
-		Lua L;  // The constructor will open a new Lua state and include libraries
+		Lua<> L;  // The constructor will open a new Lua state and include libraries
 		L.UCall("print('Hello world')"); // Lua will panic in case of runtime error
 		const char* error = L.PCall("mytable = {...};", Inputs(true, 2, 3.1416, "Hello", L"world"));
 		if(error)
@@ -394,7 +394,7 @@ For output, any type that can be passed by reference can be specialized. The pro
 	int main(int argc, char* argv[])
 	{
 		using namespace lua;
-		Lua L;
+		Lua<> L;
 		tMyStruct s1 = {"Hello world", 42}, s2;
 		L.UCall("local s=...; print(s.text, s.number); s.text='new text'; return s", &s1, s2);
 		printf("text = '%s', number = %d\n", s2.text, s2.number);
