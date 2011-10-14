@@ -71,6 +71,10 @@
 #define LCBC_USE_MFC 0
 #endif
 
+#ifndef LCBC_USE_TINYXML
+#define LCBC_USE_TINYXML 1
+#endif
+
 /* LCBC_USE_EXCEPTIONS enables use of exceptions to signal Lua error.
    On some embedded systems, exceptions are switched off to save code.
 */
@@ -107,6 +111,10 @@ extern "C" {
 #define _WIN32_WINNT 0x0500
 #include <afx.h>
 #include <afxtempl.h>
+#endif
+
+#if LCBC_USE_TINYXML
+#include <tinyxml.h>
 #endif
 
 #if (LUA_VERSION_NUM >= 502) && !defined(lua_objlen)
@@ -1107,6 +1115,59 @@ template<> inline void Output::GetValue<CStringW>(lua_State* L, int idx) const
 }
 #endif
 #endif
+
+#if LCBC_USE_TINYXML
+template<> inline void Input::PushValue<TiXmlNode>(lua_State* L) const
+{
+	const TiXmlNode* node = (const TiXmlNode*)PointerValue;
+	int type = node->Type();
+	switch(type)
+	{
+	case TiXmlNode::TINYXML_DOCUMENT:
+		lua_pushstring(L,"TINYXML_DOCUMENT");
+		break;
+	case TiXmlNode::TINYXML_ELEMENT:
+	{
+		Input v(node->ToElement());
+		v.Push(L);
+		break;
+	}
+	case TiXmlNode::TINYXML_COMMENT:
+		lua_pushstring(L,"TINYXML_COMMENT");
+		break;
+	case TiXmlNode::TINYXML_UNKNOWN:
+		lua_pushstring(L,"TINYXML_UNKNOWN");
+		break;
+	case TiXmlNode::TINYXML_TEXT:
+		lua_pushstring(L, node->Value());
+		break;
+	case TiXmlNode::TINYXML_DECLARATION:
+		lua_pushstring(L,"TINYXML_DECLARATION");
+		break;
+	}
+}
+template<> inline void Input::PushValue<TiXmlElement>(lua_State* L) const
+{
+	const TiXmlElement* elem = (const TiXmlElement*)PointerValue;
+	lua_createtable(L, 0, 1);
+	lua_pushstring(L, elem->Value());
+	lua_rawseti(L, -2, 0);
+	for(const TiXmlAttribute* attrib = elem->FirstAttribute();attrib;attrib=attrib->Next())
+	{
+		lua_pushstring(L, attrib->Value());
+		lua_setfield(L, -2, attrib->Name());
+	}
+	int i=0;
+	for(const TiXmlElement* child = elem->FirstChildElement();child;child = child->NextSiblingElement(),i++)
+	{
+		Input v(child);
+		v.Push(L);
+		lua_rawseti(L, -2, i+1);
+	}
+}
+
+#endif
+
 
 template<class T>
 class Array
