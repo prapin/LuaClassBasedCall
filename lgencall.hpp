@@ -1218,7 +1218,6 @@ public:
 		L = luaL_newstate(); 
 		if(fOpenLibs)
 			luaL_openlibs(L); 
-		WideString::SetMode<LCBC_USE_WIDESTRING>(L);
 		FlushCache();
 	}
 	Lua(lua_State* l) 
