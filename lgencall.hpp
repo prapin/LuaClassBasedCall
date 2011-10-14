@@ -137,7 +137,13 @@ public:
 		lua_setfield(L, LUA_REGISTRYINDEX, "LuaClassBasedPushWideString"); 
 		lua_pushcfunction(L, Get<mode>);
 		lua_setfield(L, LUA_REGISTRYINDEX, "LuaClassBasedGetWideString"); 
-		
+	}
+	template<WideStringMode input_mode, WideStringMode output_mode> static void SetMode(lua_State* L)
+	{
+		lua_pushcfunction(L, Push<input_mode>);
+		lua_setfield(L, LUA_REGISTRYINDEX, "LuaClassBasedPushWideString"); 
+		lua_pushcfunction(L, Get<output_mode>);
+		lua_setfield(L, LUA_REGISTRYINDEX, "LuaClassBasedGetWideString"); 
 	}
 	static void Push(lua_State* L, const wchar_t* str) { Push(L, str, wcslen(str)); }
 	static void Push(lua_State* L, const wchar_t* str, size_t len)

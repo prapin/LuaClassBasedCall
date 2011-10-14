@@ -13,7 +13,7 @@ using namespace lua;
 
 bool TestSyntax::All()
 {
-	WideString::SetMode<LocaleMode>(Lua);
+	WideString::SetMode<LocaleMode, Utf8Mode>(Lua);
 	UCall();
 	PCall();
 	ECall();
