@@ -1,4 +1,4 @@
-// Configuration flags: C++ Standard Library ON
+// Configuration flags: TinyXML ON
 #define LCBC_USE_MFC 0
 #define LCBC_USE_CSL 0
 #define LCBC_USE_TINYXML 1
@@ -22,9 +22,8 @@ bool TestTinyXml::All()
 bool TestTinyXml::InputNode()
 {
 	TiXmlDocument doc;
-	doc.Parse("<doc><tag1 A=1 B=2/>hello</doc>");
-	doc.Print(stdout, 0);
-	return InputCommon("InputNode", 0xC781FACC, Inputs(doc.RootElement()));
+	doc.Parse("<?xml version=\"1.0\" standalone=\"yes\"?><!--comm--><!DOCTYPE test><doc><tag1 A=1 B=2 C=D/>hello&lt;<tag2>&lt;World</tag2><!-- comment --></doc>");
+	return InputCommon("InputNode", 0xb45e98ab, Inputs(&doc));
 }
 
 int main(int argc, const PSTRING argv[])

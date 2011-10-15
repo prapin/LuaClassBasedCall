@@ -1124,8 +1124,11 @@ template<> inline void Input::PushValue<TiXmlNode>(lua_State* L) const
 	switch(type)
 	{
 	case TiXmlNode::TINYXML_DOCUMENT:
-		lua_pushstring(L,"TINYXML_DOCUMENT");
+	{
+		Input v(node->ToDocument());
+		v.Push(L);
 		break;
+	}
 	case TiXmlNode::TINYXML_ELEMENT:
 	{
 		Input v(node->ToElement());
@@ -1133,17 +1136,29 @@ template<> inline void Input::PushValue<TiXmlNode>(lua_State* L) const
 		break;
 	}
 	case TiXmlNode::TINYXML_COMMENT:
-		lua_pushstring(L,"TINYXML_COMMENT");
+		lua_pushfstring(L, "<!--%s-->", node->Value());
 		break;
 	case TiXmlNode::TINYXML_UNKNOWN:
-		lua_pushstring(L,"TINYXML_UNKNOWN");
+		lua_pushfstring(L, "<%s>", node->Value());
 		break;
 	case TiXmlNode::TINYXML_TEXT:
-		lua_pushstring(L, node->Value());
+		lua_pushfstring(L, "%s%s", *node->Value() == '<' ? " " : "", node->Value());
 		break;
 	case TiXmlNode::TINYXML_DECLARATION:
-		lua_pushstring(L,"TINYXML_DECLARATION");
+	{
+		const TiXmlDeclaration* decl = node->ToDeclaration();
+		int top = lua_gettop(L);
+		lua_pushstring(L, "<?xml ");
+		if(*decl->Version())
+			lua_pushfstring(L,  "version=\"%s\" ", decl->Version());
+		if(*decl->Encoding())
+			lua_pushfstring(L,  "encoding=\"%s\" ", decl->Encoding());
+		if(*decl->Standalone())
+			lua_pushfstring(L,  "standalone=\"%s\" ", decl->Standalone());
+		lua_pushstring(L, "?>");
+		lua_concat(L, lua_gettop(L)-top);
 		break;
+	}
 	}
 }
 template<> inline void Input::PushValue<TiXmlElement>(lua_State* L) const
@@ -1155,10 +1170,27 @@ template<> inline void Input::PushValue<TiXmlElement>(lua_State* L) const
 	for(const TiXmlAttribute* attrib = elem->FirstAttribute();attrib;attrib=attrib->Next())
 	{
 		lua_pushstring(L, attrib->Value());
+		if(lua_isnumber(L, -1))
+		{
+			lua_pushnumber(L, lua_tonumber(L, -1));
+			lua_replace(L, -2);
+		}
 		lua_setfield(L, -2, attrib->Name());
 	}
 	int i=0;
-	for(const TiXmlElement* child = elem->FirstChildElement();child;child = child->NextSiblingElement(),i++)
+	for(const TiXmlNode* child = elem->FirstChild();child;child = child->NextSibling(),i++)
+	{
+		Input v(child);
+		v.Push(L);
+		lua_rawseti(L, -2, i+1);
+	}
+}
+template<> inline void Input::PushValue<TiXmlDocument>(lua_State* L) const
+{
+	const TiXmlDocument* elem = (const TiXmlDocument*)PointerValue;
+	lua_createtable(L, 0, 0);
+	int i=0;
+	for(const TiXmlNode* child = elem->FirstChild();child;child = child->NextSibling(),i++)
 	{
 		Input v(child);
 		v.Push(L);
