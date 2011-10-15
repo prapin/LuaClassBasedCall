@@ -1197,6 +1197,60 @@ template<> inline void Input::PushValue<TiXmlDocument>(lua_State* L) const
 		lua_rawseti(L, -2, i+1);
 	}
 }
+template<> inline void Output::GetValue<TiXmlNode*>(lua_State* L, int idx) const
+{
+	TiXmlNode** pnode = (TiXmlNode**)PointerValue;
+	if(lua_istable(L, idx))
+	{
+		TiXmlElement* elem;
+		Output v(elem);
+		v.Get(L, idx);
+		*pnode = elem;
+	}
+	else
+	{
+		const char* str = luaL_checkstring(L, idx);
+		if(*str == '<')
+		{
+			TiXmlDocument doc;
+			doc.Parse(str);
+			*pnode = doc.FirstChild()->Clone();
+		}
+		else
+		{
+			*pnode = new TiXmlText(str);
+		}
+	}
+}
+template<> inline void Output::GetValue<TiXmlElement*>(lua_State* L, int idx) const
+{
+	TiXmlElement** pelem = (TiXmlElement**)PointerValue;
+	int top = lua_gettop(L);
+	lua_rawgeti(L, idx, 0);
+	TiXmlElement* elem = new TiXmlElement(luaL_checkstring(L, top+1));
+	lua_settop(L, top);
+	*pelem = elem;
+	lua_pushnil(L);
+	while (lua_next(L, idx) != 0)
+	{
+		if(lua_type(L, top+1) == LUA_TSTRING)
+		{
+			elem->SetAttribute(lua_tostring(L, top+1), lua_tostring(L, top+2));
+		}
+		lua_settop(L, top+1);
+	}
+	lua_settop(L, top);
+	int len=(int)lua_objlen(L, idx);
+	for(int i=1;i<=len;i++)
+	{
+		lua_rawgeti(L, idx, i);
+		TiXmlNode* node;
+		Output v(node);
+		v.Get(L, top+1);
+		elem->LinkEndChild(node);
+		lua_settop(L, top);
+	}
+}
 
 #endif
 

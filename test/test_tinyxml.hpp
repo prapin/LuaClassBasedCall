@@ -8,4 +8,5 @@ public:
 
 private:
 	bool InputNode();
+	bool OutputNode();
 };
