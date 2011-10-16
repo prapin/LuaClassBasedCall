@@ -22,7 +22,7 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 2.1.0
+// Version 2.2.0
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
@@ -72,7 +72,7 @@
 #endif
 
 #ifndef LCBC_USE_TINYXML
-#define LCBC_USE_TINYXML 1
+#define LCBC_USE_TINYXML 0
 #endif
 
 /* LCBC_USE_EXCEPTIONS enables use of exceptions to signal Lua error.
@@ -240,7 +240,9 @@ public:
 	Input(const CMapStringToOb& value) { pPush = &Input::PushCMap<CMapStringToOb, CString, CObject*>; PointerValue = &value; }
 	Input(const CMapStringToString& value) { pPush = &Input::PushCMap<CMapStringToString, CString, CString>; PointerValue = &value; }
 #endif
-
+#if LCBC_USE_TINYXML
+	Input(const TiXmlDocument& value) { pPush = &Input::PushTiXmlDocument; PointerValue = &value; }
+#endif
 	void Push(lua_State* L) const { (this->*pPush)(L); }
 private:
 	void PushNil(lua_State* L) const { lua_pushnil(L); }
@@ -264,6 +266,7 @@ private:
 	template<class T> void PushCArray(lua_State* L) const;
 	template<class T> void PushCList(lua_State* L) const;
 	template<class T, class K, class V> void PushCMap(lua_State* L) const;
+	void PushTiXmlDocument(lua_State* L) const;
 
 	void (Input::*pPush)(lua_State* L) const;
 	union 
@@ -1124,11 +1127,7 @@ template<> inline void Input::PushValue<TiXmlNode>(lua_State* L) const
 	switch(type)
 	{
 	case TiXmlNode::TINYXML_DOCUMENT:
-	{
-		Input v(node->ToDocument());
-		v.Push(L);
 		break;
-	}
 	case TiXmlNode::TINYXML_ELEMENT:
 	{
 		Input v(node->ToElement());
@@ -1185,7 +1184,7 @@ template<> inline void Input::PushValue<TiXmlElement>(lua_State* L) const
 		lua_rawseti(L, -2, i+1);
 	}
 }
-template<> inline void Input::PushValue<TiXmlDocument>(lua_State* L) const
+inline void Input::PushTiXmlDocument(lua_State* L) const
 {
 	const TiXmlDocument* elem = (const TiXmlDocument*)PointerValue;
 	lua_createtable(L, 0, 0);
@@ -1248,6 +1247,22 @@ template<> inline void Output::GetValue<TiXmlElement*>(lua_State* L, int idx) co
 		Output v(node);
 		v.Get(L, top+1);
 		elem->LinkEndChild(node);
+		lua_settop(L, top);
+	}
+}
+
+template<> inline void Output::GetValue<TiXmlDocument>(lua_State* L, int idx) const
+{
+	TiXmlDocument* doc = (TiXmlDocument*)PointerValue;
+	int top = lua_gettop(L);
+	int len=(int)lua_objlen(L, idx);
+	for(int i=1;i<=len;i++)
+	{
+		lua_rawgeti(L, idx, i);
+		TiXmlNode* node;
+		Output v(node);
+		v.Get(L, top+1);
+		doc->LinkEndChild(node);
 		lua_settop(L, top);
 	}
 }
