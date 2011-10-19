@@ -1577,8 +1577,8 @@ typedef LuaW Lua;
 typedef LuaA Lua;
 #endif
 
-template<> const char* LuaT<char>::GetString(int idx) { return lua_tostring(L, idx); }
-template<> const wchar_t* LuaT<wchar_t>::GetString(int idx) { return WideString::Get(L, idx); }
+template<> inline const char* LuaT<char>::GetString(int idx) { return lua_tostring(L, idx); }
+template<> inline const wchar_t* LuaT<wchar_t>::GetString(int idx) { return WideString::Get(L, idx); }
 template<> template<> inline void LuaT<char>::DoTCall<void>(const Script& script, const Inputs& inputs) { ECall(script, inputs); }
 template<> template<> inline void LuaT<wchar_t>::DoTCall<void>(const Script& script, const Inputs& inputs) { ECall(script, inputs); }
 
