@@ -18,7 +18,7 @@ protected:
 	uint32_t ComputeCrc(const uint8_t* buf, size_t len);
 	void MakeCrcTable();
 	
-	lua::Lua<> Lua;
+	lua::LuaA Lua;
 	PSTRING LastTestName;
 	uint32_t CrcTable[256];
 	uint8_t Verbosity;

@@ -22,7 +22,7 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 2.2.0
+// Version 2.2.1
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
@@ -1382,31 +1382,31 @@ private:
 	int LoadFile(lua_State* L) const { return luaL_loadfile(L, string); }
 
 };
-template<class C=char>
-class Lua
+template<class C>
+class LuaT
 {
 public:
-	Lua(bool fOpenLibs=true)
+	LuaT(bool fOpenLibs=true)
 	{ 
 		L = luaL_newstate(); 
 		if(fOpenLibs)
 			luaL_openlibs(L); 
 		FlushCache();
 	}
-	Lua(lua_State* l) 
+	LuaT(lua_State* l) 
 	{
 		L = l; 
 		Retain();
 		FlushCache();
 	}
-	Lua(const Lua& src)
+	LuaT(const LuaT& src)
 	{
 		L = src.L; 
 		Retain();
 		FlushCache();
 	}
-	~Lua() { Release(); }
-	Lua& operator=(const Lua& src) 
+	~LuaT() { Release(); }
+	LuaT& operator=(const LuaT& src) 
 	{ 
 		Release(); 
 		L = src.L; 
@@ -1469,8 +1469,8 @@ public:
 	template<class T> T TCall(const Script& script, ref arg1, ref arg2, ref arg3, ref arg4, ref arg5, ref arg6, ref arg7, ref arg8,
 		ref arg9, ref arg10=nil, ref arg11=nil, ref arg12=nil, ref arg13=nil, ref arg14=nil, ref arg15=nil, ref arg16=nil)
 		{ return DoTCall<T>(script, Inputs(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16)); }
-	Lua& operator << (const Input& input) { shift_inputs.add(input); return *this; }
-	Lua& operator >> (const Output& output)  { shift_outputs.add(output); return *this; }
+	LuaT& operator << (const Input& input) { shift_inputs.add(input); return *this; }
+	LuaT& operator >> (const Output& output)  { shift_outputs.add(output); return *this; }
 	const C* operator | (const Script& script) 
 	{ 
 		const C* error = PCall(script, shift_inputs, shift_outputs); 
@@ -1521,7 +1521,7 @@ private:
 	}
 	static int DoCallS(lua_State* L)
 	{
-		Lua* This = (Lua*)lua_topointer(L, 1);
+		LuaT* This = (LuaT*)lua_topointer(L, 1);
 		This->DoCall();
 		return 0;
 	}
@@ -1569,10 +1569,18 @@ private:
 	Outputs shift_outputs;
 };
 
-template<> const char* Lua<char>::GetString(int idx) { return lua_tostring(L, idx); }
-template<> const wchar_t* Lua<wchar_t>::GetString(int idx) { return WideString::Get(L, idx); }
-template<> template<> inline void Lua<char>::DoTCall<void>(const Script& script, const Inputs& inputs) { ECall(script, inputs); }
-template<> template<> inline void Lua<wchar_t>::DoTCall<void>(const Script& script, const Inputs& inputs) { ECall(script, inputs); }
+typedef LuaT<char> LuaA;
+typedef LuaT<wchar_t> LuaW;
+#if defined(_UNICODE) || defined(UNICODE)
+typedef LuaW Lua;
+#else
+typedef LuaA Lua;
+#endif
+
+template<> const char* LuaT<char>::GetString(int idx) { return lua_tostring(L, idx); }
+template<> const wchar_t* LuaT<wchar_t>::GetString(int idx) { return WideString::Get(L, idx); }
+template<> template<> inline void LuaT<char>::DoTCall<void>(const Script& script, const Inputs& inputs) { ECall(script, inputs); }
+template<> template<> inline void LuaT<wchar_t>::DoTCall<void>(const Script& script, const Inputs& inputs) { ECall(script, inputs); }
 
 #if LCBC_USE_WIDESTRING
 template<> inline int WideString::Push<RawMode>(lua_State* /*L*/) { return 1; }
