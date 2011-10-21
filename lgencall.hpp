@@ -142,6 +142,11 @@ class dummy_wstring {};
 size_t wcslen(const dummy_wchar_t*);
 #endif
 
+#if !LCBC_USE_QT
+enum QChar {};
+enum QString {};
+#endif
+
 enum WideStringMode { RawMode, LocaleMode, Utf8Mode };
 
 class WideString
@@ -187,11 +192,17 @@ private:
 class QtString
 {
 public:
+	static QString Get(lua_State* L, int idx) { size_t size; return Get(L, idx, size); }
+	static QString Get(lua_State* L, int idx, size_t& size);
 	static void Push(lua_State* L, const QString& str) 
+#if LCBC_USE_QT
 	{
 		QByteArray utf8 = str.toUtf8();
 		lua_pushlstring(L, utf8, utf8.size());
 	}
+#else
+	;
+#endif
 };
 
 class Input
@@ -1345,15 +1356,15 @@ template<class C>
 class ErrorT
 {
 public:
-	ErrorT(const C* message) : Message(message)  {}
-	operator const C*() const { return Message; }
-	const C* str() const { return Message; }
+	ErrorT(C message) : Message(message)  {}
+	operator C() const { return Message; }
+	C str() const { return Message; }
 private:
-	const C* Message;
+	C Message;
 };
 
-typedef ErrorT<char> ErrorA;
-typedef ErrorT<wchar_t> ErrorW;
+typedef ErrorT<const char*> ErrorA;
+typedef ErrorT<const wchar_t*> ErrorW;
 #if defined(_UNICODE) || defined(UNICODE)
 typedef ErrorW Error;
 #else
@@ -1368,7 +1379,6 @@ class Script
 public:
 	Script(const char* snippet) : string(snippet) { pKey=&Script::KeyString; pLoad=&Script::LoadString; }
 	Script(const wchar_t* snippet) : wstring(snippet) { pKey=&Script::KeyWString; pLoad=&Script::LoadWString; }
-	Script(const QString& snippet) : qstring(&snippet) { pKey=&Script::KeyQString; pLoad=&Script::LoadQString; }
 	void pushkey(lua_State* L) const { (this->*pKey)(L); }
 	int load(lua_State* L) const { return (this->*pLoad)(L); }
 protected:
@@ -1382,6 +1392,10 @@ protected:
 		lua_remove(L, -2);
 		return res;
 	}
+#if LCBC_USE_QT
+public:
+	Script(const QString& snippet) : qstring(&snippet) { pKey=&Script::KeyQString; pLoad=&Script::LoadQString; }
+protected:
 	void KeyQString(lua_State* L) const { lua_pushlstring(L, (const char*)qstring->unicode(), qstring->size()*sizeof(QChar)); }
 	int LoadQString(lua_State* L) const 
 	{ 
@@ -1390,6 +1404,7 @@ protected:
 		lua_remove(L, -2);
 		return res;
 	}
+#endif
 	typedef void (Script::*pKey_t)(lua_State* L) const;
 	typedef int (Script::*pLoad_t)(lua_State* L) const;
 	pKey_t pKey;
@@ -1456,10 +1471,10 @@ public:
 		PrepareCall(script, inputs, outputs);
 		DoCall();
 	}
-	const C* PCall(const Script& script, const Input& input, const Output& output = nil) {  return PCall(script, Inputs(input), Outputs(output)); }
-	const C* PCall(const Script& script, const Outputs& outputs) { return PCall(script, Inputs(), outputs); }
-	const C* PCall(const Script& script, const Output& output) { return PCall(script, Inputs(), Outputs(output)); }
-	const C* PCall(const Script& script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
+	C PCall(const Script& script, const Input& input, const Output& output = nil) {  return PCall(script, Inputs(input), Outputs(output)); }
+	C PCall(const Script& script, const Outputs& outputs) { return PCall(script, Inputs(), outputs); }
+	C PCall(const Script& script, const Output& output) { return PCall(script, Inputs(), Outputs(output)); }
+	C PCall(const Script& script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
 	{
 		PrepareCall(script, inputs, outputs);
 #if LUA_VERSION_NUM >= 502
@@ -1471,7 +1486,7 @@ public:
 		if(lua_cpcall(L, (lua_CFunction)DoCallS, this))
 			return GetString(lua_gettop(L));
 #endif
-		return NULL;
+		return (C)NULL;
 	}
 	void ECall(const Script& script, const Input& input, const Output& output = nil) { ECall(script, Inputs(input), Outputs(output)); }
 	void ECall(const Script& script, const Outputs& outputs) { ECall(script, Inputs(), outputs); }
@@ -1479,7 +1494,7 @@ public:
 	void ECall(const Script& script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
 #if LCBC_USE_EXCEPTIONS
 	{
-		const C* error = PCall(script, inputs, outputs);
+		C error = PCall(script, inputs, outputs);
 		if(error)
 			throw ErrorT<C>(error);
 	}
@@ -1499,9 +1514,9 @@ public:
 		{ return DoTCall<T>(script, Inputs(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16)); }
 	LuaT& operator << (const Input& input) { shift_inputs.add(input); return *this; }
 	LuaT& operator >> (const Output& output)  { shift_outputs.add(output); return *this; }
-	const C* operator | (const Script& script) 
+	C operator | (const Script& script) 
 	{ 
-		const C* error = PCall(script, shift_inputs, shift_outputs); 
+		C error = PCall(script, shift_inputs, shift_outputs); 
 		shift_inputs.empty();
 		shift_outputs.empty();
 		return error;
@@ -1509,13 +1524,13 @@ public:
 #if LCBC_USE_EXCEPTIONS
 	void operator & (const Script& script)
 	{
-		const C* error = operator | (script);
+		C error = operator | (script);
 		if(error)
 			throw ErrorT<C>(error);
 	}
 #endif		
 private:
-	const C* GetString(int idx);
+	C GetString(int idx);
 	void PrepareCall(const Script& script_, const Inputs& inputs_, const Outputs& outputs_)
 	{
 		lua_settop(L, 0);
@@ -1597,18 +1612,20 @@ private:
 	Outputs shift_outputs;
 };
 
-typedef LuaT<char> LuaA;
-typedef LuaT<wchar_t> LuaW;
+typedef LuaT<const char*> LuaA;
+typedef LuaT<const wchar_t*> LuaW;
 #if defined(_UNICODE) || defined(UNICODE)
 typedef LuaW Lua;
 #else
 typedef LuaA Lua;
 #endif
 
-template<> inline const char* LuaT<char>::GetString(int idx) { return lua_tostring(L, idx); }
-template<> inline const wchar_t* LuaT<wchar_t>::GetString(int idx) { return WideString::Get(L, idx); }
-template<> template<> inline void LuaT<char>::DoTCall<void>(const Script& script, const Inputs& inputs) { ECall(script, inputs); }
-template<> template<> inline void LuaT<wchar_t>::DoTCall<void>(const Script& script, const Inputs& inputs) { ECall(script, inputs); }
+template<> inline const char* LuaT<const char*>::GetString(int idx) { return lua_tostring(L, idx); }
+template<> inline const wchar_t* LuaT<const wchar_t*>::GetString(int idx) { return WideString::Get(L, idx); }
+template<> inline QString LuaT<QString>::GetString(int idx) { return QtString::Get(L, idx); }
+template<> template<> inline void LuaT<const char*>::DoTCall<void>(const Script& script, const Inputs& inputs) { ECall(script, inputs); }
+template<> template<> inline void LuaT<const wchar_t*>::DoTCall<void>(const Script& script, const Inputs& inputs) { ECall(script, inputs); }
+template<> template<> inline void LuaT<QString>::DoTCall<void>(const Script& script, const Inputs& inputs) { ECall(script, inputs); }
 
 #if LCBC_USE_WIDESTRING
 template<> inline int WideString::Push<RawMode>(lua_State* /*L*/) { return 1; }
