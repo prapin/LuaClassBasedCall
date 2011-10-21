@@ -54,6 +54,10 @@
 #define LCBC_USE_CSL 0
 #endif
 
+#ifndef LCBC_USE_QT
+#define LCBC_USE_QT 0
+#endif
+
 /* LCBC_USE_MFC enables some Microsoft Foundation Classes (MFC)
    objects to be directly handled. The supported classes are :
    - CObject* : using (de-)serialization in a userdata
@@ -105,6 +109,10 @@ extern "C" {
 #include <stack>
 #include <valarray>
 #include <bitset>
+#endif
+
+#if LCBC_USE_QT
+#include <QString>
 #endif
 
 #if LCBC_USE_MFC
@@ -174,6 +182,16 @@ public:
 private:
 	template<WideStringMode mode> static int Push(lua_State* L);
 	template<WideStringMode mode> static int Get(lua_State* L);
+};
+
+class QtString
+{
+public:
+	static void Push(lua_State* L, const QString& str) 
+	{
+		QByteArray utf8 = str.toUtf8();
+		lua_pushlstring(L, utf8, utf8.size());
+	}
 };
 
 class Input
@@ -1349,9 +1367,10 @@ class Script
 {
 public:
 	Script(const char* snippet) : string(snippet) { pKey=&Script::KeyString; pLoad=&Script::LoadString; }
+	Script(const wchar_t* snippet) : wstring(snippet) { pKey=&Script::KeyWString; pLoad=&Script::LoadWString; }
+	Script(const QString& snippet) : qstring(&snippet) { pKey=&Script::KeyQString; pLoad=&Script::LoadQString; }
 	void pushkey(lua_State* L) const { (this->*pKey)(L); }
 	int load(lua_State* L) const { return (this->*pLoad)(L); }
-	Script(const wchar_t* snippet) : wstring(snippet) { pKey=&Script::KeyWString; pLoad=&Script::LoadWString; }
 protected:
 	void KeyString(lua_State* L) const { lua_pushstring(L, string); }
 	int LoadString(lua_State* L) const { return luaL_loadstring(L, string); }
@@ -1359,6 +1378,14 @@ protected:
 	int LoadWString(lua_State* L) const 
 	{ 
 		WideString::Push(L, wstring); 
+		int res = luaL_loadstring(L, lua_tostring(L, -1)); 
+		lua_remove(L, -2);
+		return res;
+	}
+	void KeyQString(lua_State* L) const { lua_pushlstring(L, (const char*)qstring->unicode(), qstring->size()*sizeof(QChar)); }
+	int LoadQString(lua_State* L) const 
+	{ 
+		QtString::Push(L, *qstring); 
 		int res = luaL_loadstring(L, lua_tostring(L, -1)); 
 		lua_remove(L, -2);
 		return res;
@@ -1371,6 +1398,7 @@ protected:
 	{
 		const char* string;
 		const wchar_t* wstring;
+		const QString* qstring;
 	};
 };
 
