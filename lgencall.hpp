@@ -1490,7 +1490,6 @@ private:
 	const C* GetString(int idx);
 	void PrepareCall(const Script& script_, const Inputs& inputs_, const Outputs& outputs_)
 	{
-		lua_settop(L, 0);
 		script = &script_;
 		inputs = &inputs_;
 		outputs = &outputs_;
@@ -1501,23 +1500,29 @@ private:
 		int idxtrace = lua_gettop(L);
 		lua_getfield(L, LUA_REGISTRYINDEX, "LuaClassBasedCaller");
 		script->pushkey(L);
-		lua_gettable(L, -2);
-		if(!lua_isfunction(L, -1))
+		if(lua_toboolean(L, -1))
 		{
-			if(script->load(L))
-				lua_error(L);
-			lua_pushvalue(L, -1);
-			script->pushkey(L);
-			lua_rawset(L, -5);
+			lua_rawget(L, -2);
+			if(!lua_isfunction(L, -1))
+			{
+				if(script->load(L))
+					lua_error(L);
+				script->pushkey(L);
+				lua_pushvalue(L, -2);
+				lua_rawset(L, -5);
+			}
 		}
-		int base = lua_gettop(L);
+		else if(script->load(L))
+			lua_error(L);
+		lua_insert(L, 1);
+		lua_settop(L, 1);
 		lua_checkstack(L, (int)inputs->size());
 		for(size_t i=0;i<inputs->size(); i++)
 			inputs->get(i).Push(L);
 		if(lua_pcall(L, (int)inputs->size(), (int)outputs->size(), idxtrace))
 			lua_error(L);
 		for(size_t i=0;i<outputs->size(); i++)
-			outputs->get(i).Get(L, (int)i+base);
+			outputs->get(i).Get(L, (int)i+1);
 	}
 	static int DoCallS(lua_State* L)
 	{
