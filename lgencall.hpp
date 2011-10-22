@@ -1355,11 +1355,12 @@ public:
 	Script(const char* snippet, const char* name_) : string(snippet), name(name_) { pKey=&Script::KeyString; pLoad=&Script::LoadNamedString; }
 	Script(const wchar_t* snippet, const wchar_t* name) : wstring(snippet), wname(name) { pKey=&Script::KeyWString; pLoad=&Script::LoadWNamedString; }
 protected:
-	Script() {}
+	Script() { pKey=&Script::KeyNil; }
 	void KeyString(lua_State* L) const { lua_pushstring(L, string); }
 	int LoadString(lua_State* L) const { return luaL_loadstring(L, string); }
 	int LoadNamedString(lua_State* L) const { return luaL_loadbuffer(L, string, strlen(string), name); }
 	void KeyWString(lua_State* L) const { lua_pushlstring(L, (const char*)wstring, wcslen(wstring)*sizeof(wchar_t)); }
+	void KeyNil(lua_State* L) const { lua_pushnil(L); }
 	int LoadWString(lua_State* L) const 
 	{ 
 		WideString::Push(L, wstring); 
@@ -1396,11 +1397,34 @@ protected:
 class File : public Script
 {
 public:
-	File(const char* snippet) { string=snippet; pLoad=(pLoad_t)&File::LoadFile; pKey=(pKey_t)&File::KeyNil; }
+	File(const char* snippet) { string=snippet; pLoad=(pLoad_t)&File::LoadFile; }
+	File(const wchar_t* snippet) { wstring=snippet; pLoad=(pLoad_t)&File::LoadWFile; }
 private:
 	int LoadFile(lua_State* L) const { return luaL_loadfile(L, string); }
-	void KeyNil(lua_State* L) const { lua_pushnil(L); }
+	int LoadWFile(lua_State* L) const
+	{ 
+		WideString::Push(L, wstring); 
+		int res = luaL_loadfile(L, lua_tostring(L, -1)); 
+		lua_remove(L, -2);
+		return res;
+	}
+};
 
+class Global : public Script
+{
+public:
+	Global(const char* fctname) { string=fctname; pLoad=(pLoad_t)&Global::LoadGlobal; }
+	Global(const wchar_t* fctname) { wstring=fctname; pLoad=(pLoad_t)&Global::LoadWGlobal; }
+private:
+	int LoadGlobal(lua_State* L) const { lua_getglobal(L, string); return 0; }
+	int LoadWGlobal(lua_State* L) const
+	{ 
+		WideString::Push(L, wstring); 
+		const char* str = lua_tostring(L, -1);
+		lua_getglobal(L, str); 
+		lua_remove(L, -2);
+		return 0;
+	}
 };
 template<class C>
 class LuaT
