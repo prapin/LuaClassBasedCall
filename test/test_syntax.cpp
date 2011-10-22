@@ -46,8 +46,8 @@ bool TestSyntax::PCall()
 	const char* v4, *v5;
 	char buffer[1000];
 	Lua.PCall(L"return ...", 1, v1);
-	Lua.PCall("return 2,3", Outputs(v2,v3));
-	Lua.PCall(L"a={...}", Inputs(4,5));
+	Lua.PCall(Script("return 2,3", "Second snippet"), Outputs(v2,v3));
+	Lua.PCall(Script(L"a={...}", L"Third snippet"), Inputs(4,5));
 	Lua.PCall(L"a[#a+1]=6");
 	Lua.PCall(L"a[#a+1]=...", 7);
 	Lua.PCall("a=DataDumper(a);return a", Output(v4));

@@ -22,7 +22,7 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 2.2.1
+// Version 2.2.2
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
@@ -1352,14 +1352,27 @@ public:
 	void pushkey(lua_State* L) const { (this->*pKey)(L); }
 	int load(lua_State* L) const { return (this->*pLoad)(L); }
 	Script(const wchar_t* snippet) : wstring(snippet) { pKey=&Script::KeyWString; pLoad=&Script::LoadWString; }
+	Script(const char* snippet, const char* name_) : string(snippet), name(name_) { pKey=&Script::KeyString; pLoad=&Script::LoadNamedString; }
+	Script(const wchar_t* snippet, const wchar_t* name) : wstring(snippet), wname(name) { pKey=&Script::KeyWString; pLoad=&Script::LoadWNamedString; }
 protected:
+	Script() {}
 	void KeyString(lua_State* L) const { lua_pushstring(L, string); }
 	int LoadString(lua_State* L) const { return luaL_loadstring(L, string); }
+	int LoadNamedString(lua_State* L) const { return luaL_loadbuffer(L, string, strlen(string), name); }
 	void KeyWString(lua_State* L) const { lua_pushlstring(L, (const char*)wstring, wcslen(wstring)*sizeof(wchar_t)); }
 	int LoadWString(lua_State* L) const 
 	{ 
 		WideString::Push(L, wstring); 
 		int res = luaL_loadstring(L, lua_tostring(L, -1)); 
+		lua_remove(L, -2);
+		return res;
+	}
+	int LoadWNamedString(lua_State* L) const 
+	{ 
+		WideString::Push(L, wstring); 
+		WideString::Push(L, wname); 
+		int res = luaL_loadbuffer(L, lua_tostring(L, -2), strlen(lua_tostring(L, -2)), lua_tostring(L, -1)); 
+		lua_remove(L, -2);
 		lua_remove(L, -2);
 		return res;
 	}
@@ -1372,14 +1385,21 @@ protected:
 		const char* string;
 		const wchar_t* wstring;
 	};
+	union
+	{
+		const char* name;
+		const wchar_t* wname;
+	};
+	
 };
 
 class File : public Script
 {
 public:
-	File(const char* snippet) : Script(snippet) { pLoad=(pLoad_t)&File::LoadFile; }
+	File(const char* snippet) { string=snippet; pLoad=(pLoad_t)&File::LoadFile; pKey=(pKey_t)&File::KeyNil; }
 private:
 	int LoadFile(lua_State* L) const { return luaL_loadfile(L, string); }
+	void KeyNil(lua_State* L) const { lua_pushnil(L); }
 
 };
 template<class C>
@@ -1490,6 +1510,7 @@ private:
 	const C* GetString(int idx);
 	void PrepareCall(const Script& script_, const Inputs& inputs_, const Outputs& outputs_)
 	{
+		lua_settop(L, 0);
 		script = &script_;
 		inputs = &inputs_;
 		outputs = &outputs_;
@@ -1514,7 +1535,7 @@ private:
 		}
 		else if(script->load(L))
 			lua_error(L);
-		lua_insert(L, 1);
+		lua_replace(L, 1);
 		lua_settop(L, 1);
 		lua_checkstack(L, (int)inputs->size());
 		for(size_t i=0;i<inputs->size(); i++)
