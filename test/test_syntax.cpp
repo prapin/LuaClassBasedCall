@@ -46,8 +46,8 @@ bool TestSyntax::PCall()
 	const char* v4, *v5;
 	char buffer[1000];
 	Lua.PCall(L"return ...", 1, v1);
-	Lua.PCall("return 2,3", Outputs(v2,v3));
-	Lua.PCall(L"a={...}", Inputs(4,5));
+	Lua.PCall(Script("return 2,3", "Second snippet"), Outputs(v2,v3));
+	Lua.PCall(Script(L"a={...}", L"Third snippet"), Inputs(4,5));
 	Lua.PCall(L"a[#a+1]=6");
 	Lua.PCall(L"a[#a+1]=...", 7);
 	Lua.PCall("a=DataDumper(a);return a", Output(v4));
@@ -62,7 +62,8 @@ bool TestSyntax::ECall()
 	int v1, v2, v3;
 	const char* v4, *v5;
 	char buffer[1000];
-	Lua.ECall("return ...", 1, v1);
+	Lua.ECall("identity=function(...) return ... end");
+	Lua.ECall(Global(L"identity"), 1, v1);
 	Lua.ECall(L"return 2,3", Outputs(v2,v3));
 	Lua.ECall("a={...}", Inputs(4,5));
 	Lua.ECall("a[#a+1]=6");
@@ -79,7 +80,7 @@ bool TestSyntax::TCall()
 	int v1, v2, v3;
 	const char* v4, *v5;
 	char buffer[1000];
-	v1 = Lua.TCall<int>("return ...", 1);
+	v1 = Lua.TCall<int>(Global(L"identity"), 1);
 	v2 = Lua.TCall<int>(L"return 2");
 	v3 = Lua.TCall<int>("return 3");
 	Lua.TCall<void>("a={...}", 4, 5);

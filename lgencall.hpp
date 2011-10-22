@@ -22,7 +22,7 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 2.2.1
+// Version 2.2.2
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
@@ -1379,12 +1379,17 @@ class Script
 public:
 	Script(const char* snippet) : string(snippet) { pKey=&Script::KeyString; pLoad=&Script::LoadString; }
 	Script(const wchar_t* snippet) : wstring(snippet) { pKey=&Script::KeyWString; pLoad=&Script::LoadWString; }
+	Script(const char* snippet, const char* name_) : string(snippet), name(name_) { pKey=&Script::KeyString; pLoad=&Script::LoadNamedString; }
+	Script(const wchar_t* snippet, const wchar_t* name) : wstring(snippet), wname(name) { pKey=&Script::KeyWString; pLoad=&Script::LoadWNamedString; }
 	void pushkey(lua_State* L) const { (this->*pKey)(L); }
 	int load(lua_State* L) const { return (this->*pLoad)(L); }
 protected:
+	Script() { pKey=&Script::KeyNil; }
 	void KeyString(lua_State* L) const { lua_pushstring(L, string); }
 	int LoadString(lua_State* L) const { return luaL_loadstring(L, string); }
+	int LoadNamedString(lua_State* L) const { return luaL_loadbuffer(L, string, strlen(string), name); }
 	void KeyWString(lua_State* L) const { lua_pushlstring(L, (const char*)wstring, wcslen(wstring)*sizeof(wchar_t)); }
+	void KeyNil(lua_State* L) const { lua_pushnil(L); }
 	int LoadWString(lua_State* L) const 
 	{ 
 		WideString::Push(L, wstring); 
@@ -1405,6 +1410,15 @@ protected:
 		return res;
 	}
 #endif
+	int LoadWNamedString(lua_State* L) const 
+	{ 
+		WideString::Push(L, wstring); 
+		WideString::Push(L, wname); 
+		int res = luaL_loadbuffer(L, lua_tostring(L, -2), strlen(lua_tostring(L, -2)), lua_tostring(L, -1)); 
+		lua_remove(L, -2);
+		lua_remove(L, -2);
+		return res;
+	}
 	typedef void (Script::*pKey_t)(lua_State* L) const;
 	typedef int (Script::*pLoad_t)(lua_State* L) const;
 	pKey_t pKey;
@@ -1415,15 +1429,45 @@ protected:
 		const wchar_t* wstring;
 		const QString* qstring;
 	};
+	union
+	{
+		const char* name;
+		const wchar_t* wname;
+	};
+	
 };
 
 class File : public Script
 {
 public:
-	File(const char* snippet) : Script(snippet) { pLoad=(pLoad_t)&File::LoadFile; }
+	File(const char* snippet) { string=snippet; pLoad=(pLoad_t)&File::LoadFile; }
+	File(const wchar_t* snippet) { wstring=snippet; pLoad=(pLoad_t)&File::LoadWFile; }
 private:
 	int LoadFile(lua_State* L) const { return luaL_loadfile(L, string); }
+	int LoadWFile(lua_State* L) const
+	{ 
+		WideString::Push(L, wstring); 
+		int res = luaL_loadfile(L, lua_tostring(L, -1)); 
+		lua_remove(L, -2);
+		return res;
+	}
+};
 
+class Global : public Script
+{
+public:
+	Global(const char* fctname) { string=fctname; pLoad=(pLoad_t)&Global::LoadGlobal; }
+	Global(const wchar_t* fctname) { wstring=fctname; pLoad=(pLoad_t)&Global::LoadWGlobal; }
+private:
+	int LoadGlobal(lua_State* L) const { lua_getglobal(L, string); return 0; }
+	int LoadWGlobal(lua_State* L) const
+	{ 
+		WideString::Push(L, wstring); 
+		const char* str = lua_tostring(L, -1);
+		lua_getglobal(L, str); 
+		lua_remove(L, -2);
+		return 0;
+	}
 };
 template<class C>
 class LuaT
@@ -1544,23 +1588,29 @@ private:
 		int idxtrace = lua_gettop(L);
 		lua_getfield(L, LUA_REGISTRYINDEX, "LuaClassBasedCaller");
 		script->pushkey(L);
-		lua_gettable(L, -2);
-		if(!lua_isfunction(L, -1))
+		if(lua_toboolean(L, -1))
 		{
-			if(script->load(L))
-				lua_error(L);
-			lua_pushvalue(L, -1);
-			script->pushkey(L);
-			lua_rawset(L, -5);
+			lua_rawget(L, -2);
+			if(!lua_isfunction(L, -1))
+			{
+				if(script->load(L))
+					lua_error(L);
+				script->pushkey(L);
+				lua_pushvalue(L, -2);
+				lua_rawset(L, -5);
+			}
 		}
-		int base = lua_gettop(L);
+		else if(script->load(L))
+			lua_error(L);
+		lua_replace(L, 1);
+		lua_settop(L, 1);
 		lua_checkstack(L, (int)inputs->size());
 		for(size_t i=0;i<inputs->size(); i++)
 			inputs->get(i).Push(L);
 		if(lua_pcall(L, (int)inputs->size(), (int)outputs->size(), idxtrace))
 			lua_error(L);
 		for(size_t i=0;i<outputs->size(); i++)
-			outputs->get(i).Get(L, (int)i+base);
+			outputs->get(i).Get(L, (int)i+1);
 	}
 	static int DoCallS(lua_State* L)
 	{
