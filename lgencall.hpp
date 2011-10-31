@@ -22,7 +22,7 @@
 * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 ******************************************************************************/
 
-// Version 2.2.2
+// Version 2.2.3
 
 #ifndef LUA_CLASSES_BASED_CALL_H
 #define LUA_CLASSES_BASED_CALL_H
@@ -1533,6 +1533,18 @@ public:
 	template<class T> T TCall(const Script& script, ref arg1, ref arg2, ref arg3, ref arg4, ref arg5, ref arg6, ref arg7, ref arg8,
 		ref arg9, ref arg10=nil, ref arg11=nil, ref arg12=nil, ref arg13=nil, ref arg14=nil, ref arg15=nil, ref arg16=nil)
 		{ return DoTCall<T>(script, Inputs(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16)); }
+
+	void VCall(const Script& script) { ECall(script); }
+	void VCall(const Script& script, ref arg1) { ECall(script, arg1); }
+	void VCall(const Script& script, ref arg1, ref arg2) { ECall(script, Inputs(arg1, arg2)); }
+	void VCall(const Script& script, ref arg1, ref arg2, ref arg3, ref arg4=nil) 
+		{ ECall(script, Inputs(arg1, arg2, arg3, arg4)); }
+	void VCall(const Script& script, ref arg1, ref arg2, ref arg3, ref arg4, ref arg5, ref arg6=nil, ref arg7=nil, ref arg8=nil) 
+		{ ECall(script, Inputs(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)); }
+	void VCall(const Script& script, ref arg1, ref arg2, ref arg3, ref arg4, ref arg5, ref arg6, ref arg7, ref arg8,
+		ref arg9, ref arg10=nil, ref arg11=nil, ref arg12=nil, ref arg13=nil, ref arg14=nil, ref arg15=nil, ref arg16=nil)
+		{ ECall(script, Inputs(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16)); }
+
 	LuaT& operator << (const Input& input) { shift_inputs.add(input); return *this; }
 	LuaT& operator >> (const Output& output)  { shift_outputs.add(output); return *this; }
 	const C* operator | (const Script& script) 
@@ -1649,8 +1661,6 @@ typedef LuaA Lua;
 
 template<> inline const char* LuaT<char>::GetString(int idx) { return lua_tostring(L, idx); }
 template<> inline const wchar_t* LuaT<wchar_t>::GetString(int idx) { return WideString::Get(L, idx); }
-template<> template<> inline void LuaT<char>::DoTCall<void>(const Script& script, const Inputs& inputs) { ECall(script, inputs); }
-template<> template<> inline void LuaT<wchar_t>::DoTCall<void>(const Script& script, const Inputs& inputs) { ECall(script, inputs); }
 
 #if LCBC_USE_WIDESTRING
 template<> inline int WideString::Push<RawMode>(lua_State* /*L*/) { return 1; }
