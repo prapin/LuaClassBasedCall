@@ -20,4 +20,5 @@ private:
 	bool OutputOtherScalars();
 	bool OutputCustom();
 	bool OutputArrays();
+	bool InOutRegistry();
 };
