@@ -113,6 +113,11 @@ extern "C" {
 
 #if LCBC_USE_QT
 #include <QString>
+#include <QLatin1String>
+#include <QDate>
+#include <QDateTime>
+#include <QByteArray>
+#include <QTime>
 #endif
 
 #if LCBC_USE_MFC
@@ -272,6 +277,16 @@ public:
 	Input(const CMapStringToOb& value) { pPush = &Input::PushCMap<CMapStringToOb, CString, CObject*>; PointerValue = &value; }
 	Input(const CMapStringToString& value) { pPush = &Input::PushCMap<CMapStringToString, CString, CString>; PointerValue = &value; }
 #endif
+#if LCBC_USE_QT
+	Input(const QString& value);
+	Input(const QLatin1String& value);
+	Input(const QDate& value);
+	Input(const QDateTime& value);
+	Input(const QByteArray& value);
+	Input(const QTime& value);
+	Input(const QChar& value);
+	Input(const QLatin1Char& value);
+#endif
 #if LCBC_USE_TINYXML
 	Input(const TiXmlDocument& value) { pPush = &Input::PushTiXmlDocument; PointerValue = &value; }
 #endif
@@ -299,6 +314,7 @@ private:
 	template<class T> void PushCArray(lua_State* L) const;
 	template<class T> void PushCList(lua_State* L) const;
 	template<class T, class K, class V> void PushCMap(lua_State* L) const;
+	template<class T> void PushQObject(lua_State* L) const;
 	void PushTiXmlDocument(lua_State* L) const;
 
 	void (Input::*pPush)(lua_State* L) const;
@@ -1310,6 +1326,78 @@ template<> inline void Output::GetValue<TiXmlDocument>(lua_State* L, int idx) co
 
 #endif
 
+#if LCBC_USE_QT
+inline QString QtString::Get(lua_State* L, int idx, size_t& size)
+{
+	const char* str = luaL_checklstring(L, idx, &size);
+	return QString::fromAscii(str, (int)size);
+}
+
+inline void QtString::Push(lua_State* L, const QString& qstr) 
+{
+	QByteArray str = qstr.toAscii();
+	lua_pushlstring(L, str, str.size());
+}
+
+template<> inline void Input::PushValue<QString>(lua_State* L) const
+{
+	const QString* str = (const QString*)PointerValue;
+	QtString::Push(L, *str);
+}
+inline Input::Input(const QString& value) { pPush = &Input::PushValue<QString>; PointerValue = &value; }
+
+template<> inline void Input::PushValue<QLatin1String>(lua_State* L) const
+{
+	const QLatin1String* str = (const QLatin1String*)PointerValue;
+	lua_pushstring(L, str->latin1());
+}
+inline Input::Input(const QLatin1String& value) { pPush = &Input::PushValue<QLatin1String>; PointerValue = &value; }
+
+template<> inline void Input::PushValue<QDate>(lua_State* L) const
+{
+	const QDate* str = (const QDate*)PointerValue;
+	lua_pushinteger(L, str->toJulianDay());
+}
+inline Input::Input(const QDate& value) { pPush = &Input::PushValue<QDate>; PointerValue = &value; }
+
+template<> inline void Input::PushValue<QDateTime>(lua_State* L) const
+{
+	const QDateTime* d = (const QDateTime*)PointerValue;
+	lua_pushnumber(L, d->toMSecsSinceEpoch() / 1000.);
+}
+inline Input::Input(const QDateTime& value) { pPush = &Input::PushValue<QDateTime>; PointerValue = &value; }
+
+template<> inline void Input::PushValue<QTime>(lua_State* L) const
+{
+	const QTime* t = (const QTime*)PointerValue;
+	lua_pushnumber(L, t->elapsed() / 1000.);
+}
+inline Input::Input(const QTime& value) { pPush = &Input::PushValue<QTime>; PointerValue = &value; }
+
+template<> inline void Input::PushValue<QByteArray>(lua_State* L) const
+{
+	const QByteArray* str = (const QByteArray*)PointerValue;
+	lua_pushlstring(L, str->constData(), str->length());
+}
+inline Input::Input(const QByteArray& value) { pPush = &Input::PushValue<QByteArray>; PointerValue = &value; }
+
+template<> inline void Input::PushValue<QChar>(lua_State* L) const
+{
+	const QChar* v = (const QChar*)PointerValue;
+	QString s(*v);
+	QtString::Push(L, s);
+}
+inline Input::Input(const QChar& value) { pPush = &Input::PushValue<QChar>; PointerValue = &value; }
+
+template<> inline void Input::PushValue<QLatin1Char>(lua_State* L) const
+{
+	const QLatin1Char* v = (const QLatin1Char*)PointerValue;
+	char c = v->toLatin1();
+	lua_pushlstring(L, &c, 1);
+}
+inline Input::Input(const QLatin1Char& value) { pPush = &Input::PushValue<QLatin1Char>; PointerValue = &value; }
+
+#endif
 
 template<class T>
 class Array
@@ -1390,8 +1478,8 @@ class Script
 {
 public:
 	Script(const char* snippet) : string(snippet) { pKey=&Script::KeyString; pLoad=&Script::LoadString; }
-	Script(const wchar_t* snippet) : wstring(snippet) { pKey=&Script::KeyWString; pLoad=&Script::LoadWString; }
 	Script(const char* snippet, const char* name_) : string(snippet), name(name_) { pKey=&Script::KeyString; pLoad=&Script::LoadNamedString; }
+	Script(const wchar_t* snippet) : wstring(snippet) { pKey=&Script::KeyWString; pLoad=&Script::LoadWString; }
 	Script(const wchar_t* snippet, const wchar_t* name) : wstring(snippet), wname(name) { pKey=&Script::KeyWString; pLoad=&Script::LoadWNamedString; }
 	Script(const QString& snippet) : qstring(&snippet) { pKey=&Script::KeyQString; pLoad=&Script::LoadQString; }
 	Script(const QString& snippet, const QString& name) : qstring(&snippet), qname(&name) { pKey=&Script::KeyQString; pLoad=&Script::LoadQNamedString; }
@@ -1715,6 +1803,7 @@ private:
 
 typedef LuaT<const char*> LuaA;
 typedef LuaT<const wchar_t*> LuaW;
+typedef LuaT<QString> LuaQ;
 #if defined(_UNICODE) || defined(UNICODE)
 typedef LuaW Lua;
 #else
@@ -1875,18 +1964,6 @@ template<> inline int WideString::Get<Utf8Mode>(lua_State* L)
 #endif
 
 #if LCBC_USE_QT
-inline QString QtString::Get(lua_State* L, int idx, size_t& size)
-{
-	const char* str = luaL_checklstring(L, idx, &size);
-	return QString::fromUtf8(str, (int)size);
-}
-
-inline void QtString::Push(lua_State* L, const QString& str) 
-{
-	QByteArray utf8 = str.toUtf8();
-	lua_pushlstring(L, utf8, utf8.size());
-}
-
 inline void Script::KeyQString(lua_State* L) const 
 { 
 	lua_pushlstring(L, (const char*)qstring->unicode(), qstring->size()*sizeof(QChar)); 

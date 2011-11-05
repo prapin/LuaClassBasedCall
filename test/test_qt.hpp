@@ -8,4 +8,6 @@ public:
 
 private:
 	bool QStringEnv();
+	bool InputTime();
+	bool InputString();
 };
