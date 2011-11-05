@@ -18,6 +18,8 @@ bool TestQt::All()
 	QStringEnv();
 	InputTime();
 	InputString();
+	OutputTime();
+	OutputString();
 	return FailedCnt == 0;
 }
 
@@ -49,8 +51,29 @@ bool TestQt::InputString()
 	QByteArray v3("P\0Q", 3);
 	QChar v4('/');
 	QLatin1Char v5('&');
-	return InputCommon("InputSimple", 0, Inputs(v1, v2, v3, v4, v5));
+	return InputCommon("InputString", 0xE62DCA58, Inputs(v1, v2, v3, v4, v5));
 }
+
+bool TestQt::OutputTime()
+{
+	QDate v1;
+	QTime v2(0,0);
+	QDateTime v3;
+
+	return OutputCommonStart("OutputTime", "return 2455928,5913,1325421040",
+			Outputs(v1, v2, v3)) &&
+		OutputCommonEnd(0x89EC344D, "%d,%d,%d", v1.toJulianDay(), v2.elapsed(), v3.toTime_t());
+}
+
+bool TestQt::OutputString()
+{
+	QString v1;
+	QByteArray v2;
+	return OutputCommonStart("OutputString", "return 'Hello','World'",
+			Outputs(v1, v2)) &&
+		OutputCommonEnd(0x3DD5712D, "%S,%s", v1.utf16(), (const char*)v2);
+}
+
 int main(int argc, const PSTRING argv[])
 {
 	TestQt test(argc, argv);

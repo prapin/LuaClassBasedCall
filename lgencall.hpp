@@ -1397,6 +1397,38 @@ template<> inline void Input::PushValue<QLatin1Char>(lua_State* L) const
 }
 inline Input::Input(const QLatin1Char& value) { pPush = &Input::PushValue<QLatin1Char>; PointerValue = &value; }
 
+template<> inline void Output::GetValue<QDate>(lua_State* L, int idx) const
+{
+	QDate* v = (QDate*)PointerValue;
+	*v = QDate::fromJulianDay(luaL_checkint(L, idx));
+}
+
+template<> inline void Output::GetValue<QTime>(lua_State* L, int idx) const
+{
+	QTime* v = (QTime*)PointerValue;
+	v->addMSecs(luaL_checknumber(L, idx)*1000.);
+}
+
+template<> inline void Output::GetValue<QDateTime>(lua_State* L, int idx) const
+{
+	QDateTime* v = (QDateTime*)PointerValue;
+	v->setMSecsSinceEpoch(luaL_checknumber(L, idx)*1000.);
+}
+
+template<> inline void Output::GetValue<QString>(lua_State* L, int idx) const
+{
+	QString* v = (QString*)PointerValue;
+	*v = QtString::Get(L, idx);
+}
+
+template<> inline void Output::GetValue<QByteArray>(lua_State* L, int idx) const
+{
+	QByteArray* v = (QByteArray*)PointerValue;
+	size_t size;
+	const char* s = luaL_checklstring(L, idx, &size);
+	v->setRawData(s, (uint)size);
+}
+
 #endif
 
 template<class T>

@@ -10,4 +10,6 @@ private:
 	bool QStringEnv();
 	bool InputTime();
 	bool InputString();
+	bool OutputTime();
+	bool OutputString();
 };
