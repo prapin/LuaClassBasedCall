@@ -23,6 +23,7 @@ bool TestBasicTypes::All()
 	OutputOtherScalars();
 	OutputCustom();
 	OutputArrays();
+	InOutRegistry();
 	return FailedCnt == 0;
 }
 
@@ -132,6 +133,18 @@ bool TestBasicTypes::OutputArrays()
 			arr1DLen, arr1D[0], arr1D[1], arr1D[2], arr1D[3],
 			countof(arr2D), arr2D[0][0], arr2D[0][1], arr2D[0][2], arr2D[1][0], arr2D[1][1], arr2D[1][2],
 			arr3DLen, arr3D[0][0][0], arr3D[0][0][1], arr3D[1][0][0], arr3D[1][0][1]);
+}
+
+bool TestBasicTypes::InOutRegistry()
+{
+	static int static_var;
+	int v1;
+	const char* v2;
+	const void* ptr_key = &static_var;
+	LastTestName = "InOutRegistry";
+	Lua.UCall("return ...", Inputs(1, "Hello"), Outputs(Registry("key_string"), Registry(ptr_key)));
+	Lua.UCall("return ...", Inputs(Registry("key_string"), Registry(ptr_key)), Outputs(v1, v2));
+	return OutputCommonEnd(0xD2E5CA4A, "%d,%s", v1, v2);
 }
 
 int main(int argc, const PSTRING argv[])

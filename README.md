@@ -127,6 +127,11 @@ The header file defines the following classes:
             extract a Lua value from the stack into the corresponding C++ variable.
             Like `Input`, there are also several constructor overloads, most of them
             are template ones. You can also use template specialization for your types.
+* `Registry`: Helper class to specify that an input or an output value shall be taken
+              from or put into the Lua registry. Its constructor expects an 'Input`
+              object, so that any supported Lua type can be used for the registry key.
+* `SizeRef`: Convenience class for `Output` that turns a plain `size_t` value into a reference
+             to a `size_t` variable.
 * `Array`:  This template class implement a simple array of objects. Its main particularity
             is that it has constructors taking 0, 1, 2, 4, 8, 16 and 32 arguments, each of the
             underlying object type. Because the last `(N/2)-1` arguments for each constructor
@@ -134,27 +139,37 @@ The header file defines the following classes:
 			when calling the constructor.
 * `Inputs`: Defined as `Array<Input>`, it represents all input arguments for a call.
 * `Outputs`: Similarly defined as `Array<Output>`, it represents all result variables from a call.
+* `Script`: Base class encapsulating a code snippet. It is responsible to load (compile) the
+            snippet and defines the cache behavior. 
+* `File`: Class deriving from `Script`, to specify loading from a Lua file instead of a snippet.
+* `Global`: Class also deriving from `Script`, telling to use a global function instead of a snippet.
 * `ErrorT<C>`: A simple container for a string, used to throw Lua errors as C++ exceptions.
                The C parameter can either be `char` or `wchar_t`.
 * `ErrorA`: Defined as `ErrorT<char>`
 * `ErrorW`: Defined as `ErrorT<wchar_t>`
 * `Error`: Defined to either `ErrorA` or `ErrorW`, depending on the definition of `UNICODE`.
-* `Lua<C>`: The main class. It is responsible to open and close the Lua state, and most importantly
+* `LuaT<C>`: The main class. It is responsible to open and close the Lua state, and most importantly
          to call Lua using a script, passing inputs and retrieving outputs. There are several
          forms of calling interfaces (`UCall`, `PCall`, `ECall`, `TCall`) and a number of overloads 
-         to handle all user cases.
+         to handle all user cases. The C parameter can either be `char` or `wchar_t`, and
+         determines the error message type.
+* `LuaA`: Defined as `LuaT<char>`
+* `LuaW`: Defined as `LuaT<wchar_t>`
+* `Lua`: Defined to either `LuaA` or `LuaW`, depending on the definition of `UNICODE`.
+         
 
 ### Calling syntax
 
 A Lua call follow one of the following generic syntax:
 
-	luaObject . {UCall|PCall|ECall} ( [L]"script" [, Inputs(inargs...)] [, Outputs(outargs...)] );
-	luaObject . {UCall|PCall|ECall} ( [L]"script" [, inarg] [, outarg] );
-	T outval = luaObject . TCall<T> ( [L]"script" [, inargs...] );
-	error = luaObject [<< inargs...] [>> outargs...] | [L]"script";
-	luaObject [<< inargs...] [>> outargs...] & [L]"script";
+	luaObject . {UCall|PCall|ECall} ( script [, Inputs(inargs...)] [, Outputs(outargs...)] );
+	luaObject . {UCall|PCall|ECall} ( script [, inarg] [, outarg] );
+	T outval = luaObject . TCall<T> ( script [, inargs...] );
+	luaObject . VCall ( script [, inargs...] );  
+	error = luaObject [<< inargs...] [>> outargs...] | script;
+	luaObject [<< inargs...] [>> outargs...] & script;
 
-As introduced earlier, `Lua` class has 4 different methods for performing a call to Lua. 
+As introduced earlier, `Lua` class has many different methods for performing a call to Lua. 
 
 *  `UCall`: performs an unprotected Lua call, like `lua_call` API function. Lua will panic
             in case of errors, except if run under a protected environment.
@@ -168,6 +183,7 @@ As introduced earlier, `Lua` class has 4 different methods for performing a call
 			constructor. There are no `Outputs` arguments, instead one (or zero) output result
 			is directly returned by the function. You have to specify the template return type.
             `TCall` also throws an exception in case of errors.
+*  `VCall`: is like `TCall` but for the case when there is no return value (`T=void`).
 *   Form with <<, >> and | :  This is another alternate syntax, inspired from iostream 
             classes in the C++ Standard Library. It is just a wrapper on top of `PCall`.
             Note that you have to place every argument and the script snippet in the same instruction.
@@ -175,11 +191,12 @@ As introduced earlier, `Lua` class has 4 different methods for performing a call
             becomes a wrapper over `ECall` which may throw an exception.
              
 
-The `"script"` argument can either be a piece of Lua code, which will be loaded using `luaL_loadstring`,
-or a filename prefixed by the `@` character, which will be loaded by `luaL_loadfile`.
-This mimics the behavior of `LUA_INIT` environment variable on the standalone interpreter.
-The string can be a regular string or a wide character string. Note that the error message will be of
-the same type as the `"script"` argument.
+The `script` argument must be an object of type `Script` or a deriving class.
+Thanks to the implicit constructor of `Script`, you can pass `const char*` or `const whar_t*`
+code snippets wherever a `script` argument is expected. It will be loaded using `luaL_loadstring`.
+If you want to run code from a file, explicitely call `File(filename)` constructor.
+To call a global function (for example, `print`), use the `Global`constructor, like
+in `Global("print")`.
 			
 ### Code footprint
 

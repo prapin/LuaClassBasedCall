@@ -83,9 +83,9 @@ bool TestSyntax::TCall()
 	v1 = Lua.TCall<int>(Global(L"identity"), 1);
 	v2 = Lua.TCall<int>(L"return 2");
 	v3 = Lua.TCall<int>("return 3");
-	Lua.TCall<void>("a={...}", 4, 5);
-	Lua.TCall<void>("a[#a+1]=6");
-	Lua.TCall<void>("a[#a+1]=...", 7);
+	Lua.VCall("a={...}", 4, 5);
+	Lua.VCall("a[#a+1]=6");
+	Lua.VCall("a[#a+1]=...", 7);
 	v4 = Lua.TCall<const char*>(L"a=DataDumper(a);return a");
 	v5 = Lua.TCall<const char*>(L"return DataDumper{...}", 8, 9);
 
