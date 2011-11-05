@@ -1,4 +1,4 @@
-	/******************************************************************************
+/******************************************************************************
 * Copyright (C) 2011 Olivetti Engineering SA, CH 1400 Yverdon-les-Bains.  
 * Original author: Patrick Rapin. All rights reserved.
 *
@@ -143,8 +143,8 @@ size_t wcslen(const dummy_wchar_t*);
 #endif
 
 #if !LCBC_USE_QT
-enum QChar {};
-enum QString {};
+enum dummy_QString {};
+#define QString dummy_QString
 #endif
 
 enum WideStringMode { RawMode, LocaleMode, Utf8Mode };
@@ -193,24 +193,8 @@ class QtString
 {
 public:
 	static QString Get(lua_State* L, int idx) { size_t size; return Get(L, idx, size); }
-	static QString Get(lua_State* L, int idx, size_t& size)
-#if LCBC_USE_QT
-	{
-		const char* str = luaL_checklstring(L, idx, &size);
-		return QString::fromUtf8(str, (int)size);
-	}
-#else
-	;
-#endif
-	static void Push(lua_State* L, const QString& str) 
-#if LCBC_USE_QT
-	{
-		QByteArray utf8 = str.toUtf8();
-		lua_pushlstring(L, utf8, utf8.size());
-	}
-#else
-	;
-#endif
+	static QString Get(lua_State* L, int idx, size_t& size);
+	static void Push(lua_State* L, const QString& str);
 };
 
 class Input
@@ -1389,6 +1373,8 @@ public:
 	Script(const wchar_t* snippet) : wstring(snippet) { pKey=&Script::KeyWString; pLoad=&Script::LoadWString; }
 	Script(const char* snippet, const char* name_) : string(snippet), name(name_) { pKey=&Script::KeyString; pLoad=&Script::LoadNamedString; }
 	Script(const wchar_t* snippet, const wchar_t* name) : wstring(snippet), wname(name) { pKey=&Script::KeyWString; pLoad=&Script::LoadWNamedString; }
+	Script(const QString& snippet) : qstring(&snippet) { pKey=&Script::KeyQString; pLoad=&Script::LoadQString; }
+	Script(const QString& snippet, const QString& name) : qstring(&snippet), qname(&name) { pKey=&Script::KeyQString; pLoad=&Script::LoadQNamedString; }
 	void pushkey(lua_State* L) const { (this->*pKey)(L); }
 	int load(lua_State* L) const { return (this->*pLoad)(L); }
 protected:
@@ -1405,19 +1391,6 @@ protected:
 		lua_remove(L, -2);
 		return res;
 	}
-#if LCBC_USE_QT
-public:
-	Script(const QString& snippet) : qstring(&snippet) { pKey=&Script::KeyQString; pLoad=&Script::LoadQString; }
-protected:
-	void KeyQString(lua_State* L) const { lua_pushlstring(L, (const char*)qstring->unicode(), qstring->size()*sizeof(QChar)); }
-	int LoadQString(lua_State* L) const 
-	{ 
-		QtString::Push(L, *qstring); 
-		int res = luaL_loadstring(L, lua_tostring(L, -1)); 
-		lua_remove(L, -2);
-		return res;
-	}
-#endif
 	int LoadWNamedString(lua_State* L) const 
 	{ 
 		WideString::Push(L, wstring); 
@@ -1427,6 +1400,24 @@ protected:
 		lua_remove(L, -2);
 		return res;
 	}
+	void KeyQString(lua_State* L) const;
+	int LoadQString(lua_State* L) const
+	{ 
+		QtString::Push(L, *qstring); 
+		int res = luaL_loadstring(L, lua_tostring(L, -1)); 
+		lua_remove(L, -2);
+		return res;
+	}
+	int LoadQNamedString(lua_State* L) const
+	{ 
+		QtString::Push(L, *qstring); 
+		QtString::Push(L, *qname); 
+		int res = luaL_loadbuffer(L, lua_tostring(L, -2), strlen(lua_tostring(L, -2)), lua_tostring(L, -1)); 
+		lua_remove(L, -2);
+		lua_remove(L, -2);
+		return res;
+	}
+
 	typedef void (Script::*pKey_t)(lua_State* L) const;
 	typedef int (Script::*pLoad_t)(lua_State* L) const;
 	pKey_t pKey;
@@ -1441,6 +1432,7 @@ protected:
 	{
 		const char* name;
 		const wchar_t* wname;
+		const QString* qname;
 	};
 	
 };
@@ -1448,13 +1440,21 @@ protected:
 class File : public Script
 {
 public:
-	File(const char* snippet) { string=snippet; pLoad=(pLoad_t)&File::LoadFile; }
-	File(const wchar_t* snippet) { wstring=snippet; pLoad=(pLoad_t)&File::LoadWFile; }
+	File(const char* filename) { string=filename; pLoad=(pLoad_t)&File::LoadFile; }
+	File(const wchar_t* filename) { wstring=filename; pLoad=(pLoad_t)&File::LoadWFile; }
+	File(const QString& filename) { qstring=&filename; pLoad=(pLoad_t)&File::LoadQFile; }
 private:
 	int LoadFile(lua_State* L) const { return luaL_loadfile(L, string); }
 	int LoadWFile(lua_State* L) const
 	{ 
 		WideString::Push(L, wstring); 
+		int res = luaL_loadfile(L, lua_tostring(L, -1)); 
+		lua_remove(L, -2);
+		return res;
+	}
+	int LoadQFile(lua_State* L) const
+	{ 
+		QtString::Push(L, *qstring); 
 		int res = luaL_loadfile(L, lua_tostring(L, -1)); 
 		lua_remove(L, -2);
 		return res;
@@ -1466,6 +1466,7 @@ class Global : public Script
 public:
 	Global(const char* fctname) { string=fctname; pLoad=(pLoad_t)&Global::LoadGlobal; }
 	Global(const wchar_t* fctname) { wstring=fctname; pLoad=(pLoad_t)&Global::LoadWGlobal; }
+	Global(const QString& fctname) { qstring=&fctname; pLoad=(pLoad_t)&Global::LoadQGlobal; }
 private:
 	int LoadGlobal(lua_State* L) const { lua_getglobal(L, string); return 0; }
 	int LoadWGlobal(lua_State* L) const
@@ -1476,7 +1477,16 @@ private:
 		lua_remove(L, -2);
 		return 0;
 	}
+	int LoadQGlobal(lua_State* L) const
+	{ 
+		QtString::Push(L, *qstring); 
+		const char* str = lua_tostring(L, -1);
+		lua_getglobal(L, str); 
+		lua_remove(L, -2);
+		return 0;
+	}
 };
+
 template<class C>
 class LuaT
 {
@@ -1547,7 +1557,7 @@ public:
 #if LCBC_USE_EXCEPTIONS
 	{
 		C error = PCall(script, inputs, outputs);
-		if(error)
+		if(error != NullString())
 			throw ErrorT<C>(error);
 	}
 #else
@@ -1833,6 +1843,28 @@ template<> inline int WideString::Get<Utf8Mode>(lua_State* L)
 	luaL_pushresult(&b);
 	return 1;
 }
+#endif
+
+#if LCBC_USE_QT
+inline QString QtString::Get(lua_State* L, int idx, size_t& size)
+{
+	const char* str = luaL_checklstring(L, idx, &size);
+	return QString::fromUtf8(str, (int)size);
+}
+
+inline void QtString::Push(lua_State* L, const QString& str) 
+{
+	QByteArray utf8 = str.toUtf8();
+	lua_pushlstring(L, utf8, utf8.size());
+}
+
+inline void Script::KeyQString(lua_State* L) const 
+{ 
+	lua_pushlstring(L, (const char*)qstring->unicode(), qstring->size()*sizeof(QChar)); 
+}
+
+#else
+#undef QString
 #endif
 
 #if !LCBC_USE_WIDESTRING
