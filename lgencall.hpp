@@ -193,7 +193,15 @@ class QtString
 {
 public:
 	static QString Get(lua_State* L, int idx) { size_t size; return Get(L, idx, size); }
-	static QString Get(lua_State* L, int idx, size_t& size);
+	static QString Get(lua_State* L, int idx, size_t& size)
+#if LCBC_USE_QT
+	{
+		const char* str = luaL_checklstring(L, idx, &size);
+		return QString::fromUtf8(str, (int)size);
+	}
+#else
+	;
+#endif
 	static void Push(lua_State* L, const QString& str) 
 #if LCBC_USE_QT
 	{
@@ -1530,7 +1538,7 @@ public:
 		if(lua_cpcall(L, (lua_CFunction)DoCallS, this))
 			return GetString(lua_gettop(L));
 #endif
-		return (C)NULL;
+		return NullString();
 	}
 	void ECall(const Script& script, const Input& input, const Output& output = nil) { ECall(script, Inputs(input), Outputs(output)); }
 	void ECall(const Script& script, const Outputs& outputs) { ECall(script, Inputs(), outputs); }
@@ -1558,6 +1566,7 @@ public:
 		{ return DoTCall<T>(script, Inputs(arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13, arg14, arg15, arg16)); }
 	LuaT& operator << (const Input& input) { shift_inputs.add(input); return *this; }
 	LuaT& operator >> (const Output& output)  { shift_outputs.add(output); return *this; }
+	C NullString() { return NULL; }
 	C operator | (const Script& script) 
 	{ 
 		C error = PCall(script, shift_inputs, shift_outputs); 
@@ -1675,7 +1684,7 @@ template<> inline const wchar_t* LuaT<const wchar_t*>::GetString(int idx) { retu
 template<> inline QString LuaT<QString>::GetString(int idx) { return QtString::Get(L, idx); }
 template<> template<> inline void LuaT<const char*>::DoTCall<void>(const Script& script, const Inputs& inputs) { ECall(script, inputs); }
 template<> template<> inline void LuaT<const wchar_t*>::DoTCall<void>(const Script& script, const Inputs& inputs) { ECall(script, inputs); }
-template<> template<> inline void LuaT<QString>::DoTCall<void>(const Script& script, const Inputs& inputs) { ECall(script, inputs); }
+template<> inline QString LuaT<QString>::NullString() { return QString(); }
 
 #if LCBC_USE_WIDESTRING
 template<> inline int WideString::Push<RawMode>(lua_State* /*L*/) { return 1; }

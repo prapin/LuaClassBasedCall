@@ -21,11 +21,13 @@ bool TestQt::All()
 
 bool TestQt::QStringEnv()
 {
-	LuaT<QChar> L(Lua);
-	QString code("return 'Hello world'");
+	LuaT<QString> L(Lua);
+	QString code1("return 'Hello world'"), code2(",");
 	const char* res;
-	L.PCall(code, Output(res));
-	return CrcAndReport("QStringEnv", 0, res);
+	QString error1 = L.PCall(code1, Output(res));
+	QString error2 = L.PCall(code2);
+	LastTestName = "QStringEnv";
+	return OutputCommonEnd(0, "%s,%S,%S", res, error1.utf16(),error2.utf16());
 }
 
 int main(int argc, const PSTRING argv[])

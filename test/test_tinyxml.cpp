@@ -4,7 +4,6 @@
 #define LCBC_USE_TINYXML 1
 #define LCBC_USE_WIDESTRING 0
 #define LCBC_USE_EXCEPTIONS 0
-#define TIXML_USE_STL
 
 #define _CRT_SECURE_NO_WARNINGS
 #include "lgencall.hpp"
