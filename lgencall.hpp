@@ -1927,7 +1927,7 @@ template<> inline int WideString::Push<Utf8Mode>(lua_State* L)
 					break;
 				value |= wstr[i] & 0x3FF;
 			}
-			for(thres=0x40;value>=thres;thres>>=1)
+			for(thres=0x40;value>=(unsigned int)thres;thres>>=1)
 			{
 				*--pstr = (char)((value & 0x3F) | 0x80);
 				value >>= 6;
