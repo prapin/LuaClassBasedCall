@@ -1627,7 +1627,7 @@ private:
 	}
 };
 
-template<class C>
+template<class C, class E=ErrorT<C> >
 class LuaT
 {
 public:
@@ -1694,12 +1694,14 @@ public:
 	void ECall(const Script& script, const Outputs& outputs) { ECall(script, Inputs(), outputs); }
 	void ECall(const Script& script, const Output& output) { ECall(script, Inputs(), Outputs(output)); }
 	void ECall(const Script& script, const Inputs& inputs = Inputs(), const Outputs& outputs = Outputs())
-#if LCBC_USE_EXCEPTIONS
 	{
 		C error = PCall(script, inputs, outputs);
 		if(error != NullString())
-			throw ErrorT<C>(error);
+			ThrowError(error);
 	}
+	void ThrowError(C error)
+#if LCBC_USE_EXCEPTIONS
+	{ throw E(error); }
 #else
 	;
 #endif		
@@ -1736,14 +1738,12 @@ public:
 		shift_outputs.empty();
 		return error;
 	}
-#if LCBC_USE_EXCEPTIONS
 	void operator & (const Script& script)
 	{
 		C error = operator | (script);
-		if(error)
-			throw ErrorT<C>(error);
+		if(error != NullString())
+			ThrowError(error);
 	}
-#endif		
 private:
 	C GetString(int idx);
 	void PrepareCall(const Script& script_, const Inputs& inputs_, const Outputs& outputs_)
@@ -1841,7 +1841,6 @@ typedef LuaW Lua;
 #else
 typedef LuaA Lua;
 #endif
-
 template<> inline const char* LuaT<const char*>::GetString(int idx) { return lua_tostring(L, idx); }
 template<> inline const wchar_t* LuaT<const wchar_t*>::GetString(int idx) { return WideString::Get(L, idx); }
 template<> inline QString LuaT<QString>::GetString(int idx) { return QtString::Get(L, idx); }
