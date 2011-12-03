@@ -1755,8 +1755,8 @@ private:
 	}
 	void DoCall()
 	{
+		lua_settop(L, 0);
 		lua_pushcfunction(L, (lua_CFunction)traceback);
-		int idxtrace = lua_gettop(L);
 		lua_getfield(L, LUA_REGISTRYINDEX, "LuaClassBasedCaller");
 		script->pushkey(L);
 		if(lua_toboolean(L, -1))
@@ -1773,15 +1773,15 @@ private:
 		}
 		else if(script->load(L))
 			lua_error(L);
-		lua_replace(L, 1);
-		lua_settop(L, 1);
+		lua_replace(L, 2);
+		lua_settop(L, 2);
 		lua_checkstack(L, (int)inputs->size());
 		for(size_t i=0;i<inputs->size(); i++)
 			inputs->get(i).Push(L);
-		if(lua_pcall(L, (int)inputs->size(), (int)outputs->size(), idxtrace))
+		if(lua_pcall(L, (int)inputs->size(), (int)outputs->size(), 1))
 			lua_error(L);
 		for(size_t i=0;i<outputs->size(); i++)
-			outputs->get(i).Get(L, (int)i+1);
+			outputs->get(i).Get(L, (int)i+2);
 	}
 	static int DoCallS(lua_State* L)
 	{
@@ -1926,7 +1926,7 @@ template<> inline int WideString::Push<Utf8Mode>(lua_State* L)
 					break;
 				value |= wstr[i] & 0x3FF;
 			}
-			for(thres=0x40;value>=thres;thres>>=1)
+			for(thres=0x40;value>=(unsigned int)thres;thres>>=1)
 			{
 				*--pstr = (char)((value & 0x3F) | 0x80);
 				value >>= 6;
