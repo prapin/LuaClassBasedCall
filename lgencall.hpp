@@ -86,11 +86,13 @@
 #define LCBC_USE_EXCEPTIONS 1
 #endif
 
+#ifndef LUA_VERSION_MAJOR
 extern "C" {
 #include "lua.h"
 #include "lauxlib.h"
 #include "lualib.h"
 }
+#endif
 #include <cstring>
 #include <cstdlib>
 
