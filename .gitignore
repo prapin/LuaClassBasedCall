@@ -1,9 +1,0 @@
-README.html
-*.bak
-TestMSVC/
-*o
-*.obj
-*.exe
-*.ilk
-*.pdb
-*.dll
