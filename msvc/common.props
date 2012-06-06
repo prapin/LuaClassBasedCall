@@ -1,22 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  <PropertyGroup Label="Configuration">
+  <PropertyGroup>
+    <LuaVersion>5.2</LuaVersion>
+    <QtBasePath>C:\QtSDK\Desktop\Qt\4.7.4-VC10</QtBasePath>
+    
     <CharacterSet>Unicode</CharacterSet>
+    <OutDir>../bin/$(Platform)$(Configuration)\</OutDir>
+    <IntDir>../obj/$(ProjectName)/$(Platform)$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Release'" Label="Configuration">
     <WholeProgramOptimization>true</WholeProgramOptimization>
-  </PropertyGroup>
-  <PropertyGroup>
-    <OutDir>../bin/$(Platform)$(Configuration)\</OutDir>
-    <IntDir>../obj/$(ProjectName)/$(Platform)$(Configuration)\</IntDir>
   </PropertyGroup>
 
   <ItemDefinitionGroup>
     <ClCompile>
       <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE;_AFXDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level3</WarningLevel>
-      <AdditionalIncludeDirectories>../..;../lua5.1;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../..;../lua$(LuaVersion);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
@@ -49,7 +50,7 @@
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ItemGroup>
-    <ProjectReference Include="..\lua5.1\lua5.1.vcxproj">
+    <ProjectReference Include="..\lua$(LuaVersion)\lua$(LuaVersion).vcxproj">
       <Project>{63a19511-d121-496d-b32d-d0b72fa4e677}</Project>
     </ProjectReference>
   </ItemGroup>

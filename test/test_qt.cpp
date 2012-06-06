@@ -33,7 +33,7 @@ bool TestQt::QStringEnv()
 	LastTestName = "QStringEnv";
 	L.ECall(File(QString("dumper.lua")));
 	int v2 = L.TCall<int>(Global(QString("select")), 2, 1, 2, 3);
-	return OutputCommonEnd(0, "%s,%S,%S,%d", v1, error1.utf16(),error2.utf16(), v2);
+	return OutputCommonEnd(0x610E1532, "%s,%S,%S,%d", v1, error1.utf16(),error2.utf16(), v2);
 }
 
 bool TestQt::InputTime()
@@ -41,7 +41,7 @@ bool TestQt::InputTime()
 	QDate v1(2012, 1, 1);
 	QTime v2(13, 30, 40);
 	QDateTime v3(v1, v2);
-	return InputCommon("InputTime", 0, Inputs(v1, v2, v3));
+	return InputCommon("InputTime", 0x22605EBF, Inputs(v1, v2, v3));
 }
 
 bool TestQt::InputString()
@@ -57,12 +57,12 @@ bool TestQt::InputString()
 bool TestQt::OutputTime()
 {
 	QDate v1;
-	QTime v2(0,0);
+	QTime v2;
 	QDateTime v3;
 
-	return OutputCommonStart("OutputTime", "return 2455928,5913,1325421040",
+	return OutputCommonStart("OutputTime", "return 2455928,48640,1325421040",
 			Outputs(v1, v2, v3)) &&
-		OutputCommonEnd(0x89EC344D, "%d,%d,%d", v1.toJulianDay(), v2.elapsed(), v3.toTime_t());
+		OutputCommonEnd(0x6DDE65ED, "%d,%d,%d", v1.toJulianDay(), -v2.secsTo(QTime()), v3.toTime_t());
 }
 
 bool TestQt::OutputString()

@@ -1372,7 +1372,7 @@ inline Input::Input(const QDateTime& value) { pPush = &Input::PushValue<QDateTim
 template<> inline void Input::PushValue<QTime>(lua_State* L) const
 {
 	const QTime* t = (const QTime*)PointerValue;
-	lua_pushnumber(L, t->elapsed() / 1000.);
+	lua_pushnumber(L, -t->secsTo(QTime()));
 }
 inline Input::Input(const QTime& value) { pPush = &Input::PushValue<QTime>; PointerValue = &value; }
 
@@ -1408,7 +1408,7 @@ template<> inline void Output::GetValue<QDate>(lua_State* L, int idx) const
 template<> inline void Output::GetValue<QTime>(lua_State* L, int idx) const
 {
 	QTime* v = (QTime*)PointerValue;
-	v->addMSecs(luaL_checknumber(L, idx)*1000.);
+	*v = v->addSecs(luaL_checknumber(L, idx));
 }
 
 template<> inline void Output::GetValue<QDateTime>(lua_State* L, int idx) const

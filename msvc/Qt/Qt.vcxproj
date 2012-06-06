@@ -23,6 +23,15 @@
     <Keyword>Win32Proj</Keyword>
   </PropertyGroup>
   <Import Project="$(SolutionDir)\common.props" />
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(QtBasePath)/include;$(QtBasePath)/include/QtCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>QtCore4.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(QtBasePath)/lib</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\..\lgencall.hpp" />
     <ClInclude Include="..\..\test\test.hpp" />
