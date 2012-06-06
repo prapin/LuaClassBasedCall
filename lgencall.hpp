@@ -120,6 +120,15 @@ extern "C" {
 #include <QDateTime>
 #include <QByteArray>
 #include <QTime>
+#include <QPoint>
+#include <QPointF>
+#include <QLine>
+#include <QLineF>
+#include <QRect>
+#include <QRectF>
+#include <QSize>
+#include <QSizeF>
+
 #endif
 
 #if LCBC_USE_MFC
@@ -288,6 +297,15 @@ public:
 	Input(const QTime& value);
 	Input(const QChar& value);
 	Input(const QLatin1Char& value);
+	Input(const QPoint& value);
+	Input(const QPointF& value);
+	Input(const QLine& value);
+	Input(const QLineF& value);
+	Input(const QRect& value);
+	Input(const QRectF& value);
+	Input(const QSize& value);
+	Input(const QSizeF& value);
+	//template<class T> Input(const QList<T>& value) { pPush = &Input::PushQList<QList<T> >; PointerValue = &value; }
 #endif
 #if LCBC_USE_TINYXML
 	Input(const TiXmlDocument& value) { pPush = &Input::PushTiXmlDocument; PointerValue = &value; }
@@ -1340,48 +1358,49 @@ inline void QtString::Push(lua_State* L, const QString& qstr)
 	QByteArray str = qstr.toAscii();
 	lua_pushlstring(L, str, str.size());
 }
+#define LCBC_CONSTRUCTOR(T) inline Input::Input(const T& value) { pPush = &Input::PushValue<T>; PointerValue = &value; }
 
 template<> inline void Input::PushValue<QString>(lua_State* L) const
 {
 	const QString* str = (const QString*)PointerValue;
 	QtString::Push(L, *str);
 }
-inline Input::Input(const QString& value) { pPush = &Input::PushValue<QString>; PointerValue = &value; }
+LCBC_CONSTRUCTOR(QString)
 
 template<> inline void Input::PushValue<QLatin1String>(lua_State* L) const
 {
 	const QLatin1String* str = (const QLatin1String*)PointerValue;
 	lua_pushstring(L, str->latin1());
 }
-inline Input::Input(const QLatin1String& value) { pPush = &Input::PushValue<QLatin1String>; PointerValue = &value; }
+LCBC_CONSTRUCTOR(QLatin1String)
 
 template<> inline void Input::PushValue<QDate>(lua_State* L) const
 {
 	const QDate* str = (const QDate*)PointerValue;
 	lua_pushinteger(L, str->toJulianDay());
 }
-inline Input::Input(const QDate& value) { pPush = &Input::PushValue<QDate>; PointerValue = &value; }
+LCBC_CONSTRUCTOR(QDate)
 
 template<> inline void Input::PushValue<QDateTime>(lua_State* L) const
 {
 	const QDateTime* d = (const QDateTime*)PointerValue;
 	lua_pushnumber(L, d->toMSecsSinceEpoch() / 1000.);
 }
-inline Input::Input(const QDateTime& value) { pPush = &Input::PushValue<QDateTime>; PointerValue = &value; }
+LCBC_CONSTRUCTOR(QDateTime)
 
 template<> inline void Input::PushValue<QTime>(lua_State* L) const
 {
 	const QTime* t = (const QTime*)PointerValue;
 	lua_pushnumber(L, -t->secsTo(QTime()));
 }
-inline Input::Input(const QTime& value) { pPush = &Input::PushValue<QTime>; PointerValue = &value; }
+LCBC_CONSTRUCTOR(QTime)
 
 template<> inline void Input::PushValue<QByteArray>(lua_State* L) const
 {
 	const QByteArray* str = (const QByteArray*)PointerValue;
 	lua_pushlstring(L, str->constData(), str->length());
 }
-inline Input::Input(const QByteArray& value) { pPush = &Input::PushValue<QByteArray>; PointerValue = &value; }
+LCBC_CONSTRUCTOR(QByteArray)
 
 template<> inline void Input::PushValue<QChar>(lua_State* L) const
 {
@@ -1389,7 +1408,7 @@ template<> inline void Input::PushValue<QChar>(lua_State* L) const
 	QString s(*v);
 	QtString::Push(L, s);
 }
-inline Input::Input(const QChar& value) { pPush = &Input::PushValue<QChar>; PointerValue = &value; }
+LCBC_CONSTRUCTOR(QChar)
 
 template<> inline void Input::PushValue<QLatin1Char>(lua_State* L) const
 {
@@ -1397,7 +1416,97 @@ template<> inline void Input::PushValue<QLatin1Char>(lua_State* L) const
 	char c = v->toLatin1();
 	lua_pushlstring(L, &c, 1);
 }
-inline Input::Input(const QLatin1Char& value) { pPush = &Input::PushValue<QLatin1Char>; PointerValue = &value; }
+LCBC_CONSTRUCTOR(QLatin1Char)
+
+#define PUSH_FIELD(f) lua_pushnumber(L, p->f()); lua_setfield(L, -2, #f)
+template<> inline void Input::PushValue<QPoint>(lua_State* L) const
+{
+	const QPoint* p = (const QPoint*)PointerValue;
+	lua_createtable(L, 0, 2);
+	PUSH_FIELD(x);
+	PUSH_FIELD(y);
+}
+LCBC_CONSTRUCTOR(QPoint)
+
+template<> inline void Input::PushValue<QPointF>(lua_State* L) const
+{
+	const QPointF* p = (const QPointF*)PointerValue;
+	lua_createtable(L, 0, 2);
+	PUSH_FIELD(x);
+	PUSH_FIELD(y);
+}
+LCBC_CONSTRUCTOR(QPointF)
+
+template<> inline void Input::PushValue<QLine>(lua_State* L) const
+{
+	const QLine* p = (const QLine*)PointerValue;
+	lua_createtable(L, 0, 4);
+	PUSH_FIELD(x1);
+	PUSH_FIELD(y1);
+	PUSH_FIELD(x2);
+	PUSH_FIELD(y2);
+}
+LCBC_CONSTRUCTOR(QLine)
+
+template<> inline void Input::PushValue<QLineF>(lua_State* L) const
+{
+	const QLineF* p = (const QLineF*)PointerValue;
+	lua_createtable(L, 0, 4);
+	PUSH_FIELD(x1);
+	PUSH_FIELD(y1);
+	PUSH_FIELD(x2);
+	PUSH_FIELD(y2);
+}
+LCBC_CONSTRUCTOR(QLineF)
+
+template<> inline void Input::PushValue<QRect>(lua_State* L) const
+{
+	const QRect* p = (const QRect*)PointerValue;
+	lua_createtable(L, 0, 4);
+	PUSH_FIELD(x);
+	PUSH_FIELD(y);
+	PUSH_FIELD(width);
+	PUSH_FIELD(height);
+}
+LCBC_CONSTRUCTOR(QRect)
+
+template<> inline void Input::PushValue<QRectF>(lua_State* L) const
+{
+	const QRectF* p = (const QRectF*)PointerValue;
+	lua_createtable(L, 0, 4);
+	PUSH_FIELD(x);
+	PUSH_FIELD(y);
+	PUSH_FIELD(width);
+	PUSH_FIELD(height);
+}
+LCBC_CONSTRUCTOR(QRectF)
+
+template<> inline void Input::PushValue<QSize>(lua_State* L) const
+{
+	const QSize* p = (const QSize*)PointerValue;
+	lua_createtable(L, 0, 2);
+	PUSH_FIELD(width);
+	PUSH_FIELD(height);
+}
+LCBC_CONSTRUCTOR(QSize)
+
+template<> inline void Input::PushValue<QSizeF>(lua_State* L) const
+{
+	const QSizeF* p = (const QSizeF*)PointerValue;
+	lua_createtable(L, 0, 2);
+	PUSH_FIELD(width);
+	PUSH_FIELD(height);
+}
+LCBC_CONSTRUCTOR(QSizeF)
+
+/*
+template<> inline void Input::PushValue<Q>(lua_State* L) const
+{
+	const Q* p = (const Q*)PointerValue;
+}
+LCBC_CONSTRUCTOR(Q)
+
+*/
 
 template<> inline void Output::GetValue<QDate>(lua_State* L, int idx) const
 {

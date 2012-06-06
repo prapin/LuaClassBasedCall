@@ -18,6 +18,7 @@ bool TestQt::All()
 	QStringEnv();
 	InputTime();
 	InputString();
+	InputGeometric();
 	OutputTime();
 	OutputString();
 	return FailedCnt == 0;
@@ -52,6 +53,19 @@ bool TestQt::InputString()
 	QChar v4('/');
 	QLatin1Char v5('&');
 	return InputCommon("InputString", 0xE62DCA58, Inputs(v1, v2, v3, v4, v5));
+}
+
+bool TestQt::InputGeometric()
+{
+	QPoint v1(3,-4);
+	QPointF v2(3.25,-4.5);
+	QLine v3(1,2,3,4);
+	QLineF v4(1.5,2.25,3.75,4);
+	QRect v5(1,2,3,4);
+	QRectF v6(1.5,2.25,3.75,4);
+	QSize v7(10,9);
+	QSizeF v8(10.5,9.5);
+	return InputCommon("InputGeometric", 0, Inputs(v1,v2,v3,v4,v5,v6,v7,v8));
 }
 
 bool TestQt::OutputTime()

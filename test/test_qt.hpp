@@ -10,6 +10,7 @@ private:
 	bool QStringEnv();
 	bool InputTime();
 	bool InputString();
+	bool InputGeometric();
 	bool OutputTime();
 	bool OutputString();
 };
