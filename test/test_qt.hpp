@@ -13,4 +13,5 @@ private:
 	bool InputGeometric();
 	bool OutputTime();
 	bool OutputString();
+	bool OutputGeometric();
 };

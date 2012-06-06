@@ -1540,6 +1540,91 @@ template<> inline void Output::GetValue<QByteArray>(lua_State* L, int idx) const
 	v->setRawData(s, (uint)size);
 }
 
+template <class T> inline void getfields(lua_State* L, int idx, T v[], ...)
+{
+	va_list list;
+	va_start(list, v);
+	const char* field;
+	while(field = va_arg(list, const char*))
+	{
+		lua_getfield(L, idx, field);
+		*v++ = (T)luaL_checknumber(L, -1);
+		lua_pop(L, 1);
+	}
+	va_end(list);
+}
+
+template<> inline void Output::GetValue<QPoint>(lua_State* L, int idx) const
+{
+	QPoint* p = (QPoint*)PointerValue;
+	int v[2];
+	getfields(L, idx, v, "x", "y", NULL);
+	*p = QPoint(v[0], v[1]);
+}
+
+template<> inline void Output::GetValue<QPointF>(lua_State* L, int idx) const
+{
+	QPointF* p = (QPointF*)PointerValue;
+	float v[2];
+	getfields(L, idx, v, "x", "y", NULL);
+	*p = QPointF(v[0], v[1]);
+}
+
+template<> inline void Output::GetValue<QLine>(lua_State* L, int idx) const
+{
+	QLine* p = (QLine*)PointerValue;
+	int v[4];
+	getfields(L, idx, v, "x1", "y1", "x2", "y2", NULL);
+	*p = QLine(v[0], v[1], v[2], v[3]);
+}
+
+template<> inline void Output::GetValue<QLineF>(lua_State* L, int idx) const
+{
+	QLineF* p = (QLineF*)PointerValue;
+	qreal v[4];
+	getfields(L, idx, v, "x1", "y1", "x2", "y2", NULL);
+	*p = QLineF(v[0], v[1], v[2], v[3]);
+}
+
+template<> inline void Output::GetValue<QRect>(lua_State* L, int idx) const
+{
+	QRect* p = (QRect*)PointerValue;
+	int v[4];
+	getfields(L, idx, v, "x", "y", "width", "height", NULL);
+	*p = QRect(v[0], v[1], v[2], v[3]);
+}
+
+template<> inline void Output::GetValue<QRectF>(lua_State* L, int idx) const
+{
+	QRectF* p = (QRectF*)PointerValue;
+	qreal v[4];
+	getfields(L, idx, v, "x", "y", "width", "height", NULL);
+	*p = QRectF(v[0], v[1], v[2], v[3]);
+}
+
+template<> inline void Output::GetValue<QSize>(lua_State* L, int idx) const
+{
+	QSize* p = (QSize*)PointerValue;
+	int v[2];
+	getfields(L, idx, v, "width", "height", NULL);
+	*p = QSize(v[0], v[1]);
+}
+
+template<> inline void Output::GetValue<QSizeF>(lua_State* L, int idx) const
+{
+	QSizeF* p = (QSizeF*)PointerValue;
+	qreal v[2];
+	getfields(L, idx, v, "width", "height", NULL);
+	*p = QSizeF(v[0], v[1]);
+}
+
+/*
+template<> inline void Output::GetValue<Q>(lua_State* L, int idx) const
+{
+	Q* p = (Q*)PointerValue;
+}
+
+*/
 #endif
 
 template<class T>

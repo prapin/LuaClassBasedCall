@@ -21,6 +21,7 @@ bool TestQt::All()
 	InputGeometric();
 	OutputTime();
 	OutputString();
+	OutputGeometric();
 	return FailedCnt == 0;
 }
 
@@ -65,7 +66,7 @@ bool TestQt::InputGeometric()
 	QRectF v6(1.5,2.25,3.75,4);
 	QSize v7(10,9);
 	QSizeF v8(10.5,9.5);
-	return InputCommon("InputGeometric", 0, Inputs(v1,v2,v3,v4,v5,v6,v7,v8));
+	return InputCommon("InputGeometric", 0xC0CF0CD3, Inputs(v1,v2,v3,v4,v5,v6,v7,v8));
 }
 
 bool TestQt::OutputTime()
@@ -88,6 +89,33 @@ bool TestQt::OutputString()
 		OutputCommonEnd(0x3DD5712D, "%S,%s", v1.utf16(), (const char*)v2);
 }
 
+bool TestQt::OutputGeometric()
+{
+	QPoint v1;
+	QPointF v2;
+	QLine v3;
+	QLineF v4;
+	QRect v5;
+	QRectF v6;
+	QSize v7;
+	QSizeF v8;
+	return OutputCommonStart("OutputGeometric", 
+		"return {x=3,y=-4},{x=3.25,y=-4.5},"
+		"{x1=1,x2=3,y1=2,y2=4},{x1=1.5,x2=3.75,y1=2.25,y2=4},"
+		"{height=4,width=3,x=1,y=2},{height=4,width=3.75,x=1.5,y=2.25},"
+		"{height=9,width=10},{height=9.5,width=10.5}",
+			Outputs(v1,v2,v3,v4,v5,v6,v7,v8)) &&
+		OutputCommonEnd(0x6C2EC8DC, "{%d,%d},{%g,%g},"
+			"{%d,%d,%d,%d},{%g,%g,%g,%g},"
+			"{%d,%d,%d,%d},{%g,%g,%g,%g},"
+			"{%d,%d},{%g,%g}",
+			v1.x(), v1.y(), v2.x(), v2.y(), 
+			v3.x1(), v3.y1(), v3.x2(), v3.y2(),
+			v4.x1(), v4.y1(), v4.x2(), v4.y2(),
+			v5.x(), v5.y(), v5.width(), v5.height(),
+			v6.x(), v6.y(), v6.width(), v6.height(),
+			v7.width(), v7.height(), v8.width(), v8.height());
+}
 int main(int argc, const PSTRING argv[])
 {
 	TestQt test(argc, argv);
